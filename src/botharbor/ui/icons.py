@@ -1,75 +1,75 @@
-"""Icon definitions using Windows Segoe MDL2 Assets font.
+"""Icon utilities using SVG icons from Lucide.
 
-Segoe MDL2 Assets is available on Windows 10/11 and contains
-hundreds of icons used by Microsoft apps.
-
-Reference: https://docs.microsoft.com/en-us/windows/apps/design/style/segoe-ui-symbol-font
+Modern, clean SVG icons that scale perfectly at any DPI.
 """
 
-from PySide6.QtGui import QFont, QFontDatabase
+from pathlib import Path
+from PySide6.QtGui import QIcon, QPixmap, QPainter, QColor
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtSvg import QSvgRenderer
 
 
-# Segoe MDL2 Assets icon codes (Unicode)
-class Icons:
-    """Icon characters from Segoe MDL2 Assets font."""
-    
-    # Player controls
-    PLAY = "\uE768"           # Play
-    STOP = "\uE71A"           # Stop  
-    PAUSE = "\uE769"          # Pause
-    REFRESH = "\uE72C"        # Refresh/Restart
-    
-    # Status
-    STATUS_CIRCLE = "\uEA3B"  # Filled circle
-    CHECKMARK = "\uE73E"      # Checkmark
-    ERROR = "\uE783"          # Error X
-    WARNING = "\uE7BA"        # Warning
-    
-    # Actions
-    ADD = "\uE710"            # Add/Plus
-    DELETE = "\uE74D"         # Delete/Trash
-    EDIT = "\uE70F"           # Edit/Pencil
-    SETTINGS = "\uE713"       # Settings/Gear
-    SAVE = "\uE74E"           # Save
-    CANCEL = "\uE711"         # Cancel/X
-    
-    # Files & Folders
-    FOLDER = "\uE8B7"         # Folder
-    FOLDER_OPEN = "\uE838"    # Open folder
-    FILE = "\uE7C3"           # File
-    DOCUMENT = "\uE8A5"       # Document
-    
-    # Navigation
-    BACK = "\uE72B"           # Back arrow
-    FORWARD = "\uE72A"        # Forward arrow
-    UP = "\uE74A"             # Up arrow
-    DOWN = "\uE74B"           # Down arrow
-    
-    # UI Elements
-    MORE = "\uE712"           # More/Ellipsis
-    SEARCH = "\uE721"         # Search
-    FILTER = "\uE71C"         # Filter
-    COPY = "\uE8C8"           # Copy
-    
-    # Misc
-    LOG = "\uE7C4"            # Log/List
-    TERMINAL = "\uE756"       # Terminal/Console
-    INFO = "\uE946"           # Info
-    POWER = "\uE7E8"          # Power
-    SUN = "\uE706"            # Sun (light mode)
-    MOON = "\uE708"           # Moon (dark mode)
+# Path to icons directory
+ICONS_DIR = Path(__file__).parent / "assets" / "icons"
 
 
-def get_icon_font(size: int = 9) -> QFont:
-    """Get the Segoe MDL2 Assets font for icons."""
-    font = QFont("Segoe MDL2 Assets", size)
-    return font
+def get_icon(name: str, color: str = "#cdd6f4") -> QIcon:
+    """Load SVG icon by name with specified color.
+    
+    Args:
+        name: Icon name without .svg extension (e.g., 'play', 'settings')
+        color: Hex color for the icon stroke (default: Catppuccin text color)
+    
+    Returns:
+        QIcon ready for use in buttons/widgets
+    """
+    icon_path = ICONS_DIR / f"{name}.svg"
+    
+    if not icon_path.exists():
+        # Return empty icon if not found
+        return QIcon()
+    
+    # Read and color the SVG
+    svg_content = icon_path.read_text(encoding="utf-8")
+    svg_content = svg_content.replace('stroke="currentColor"', f'stroke="{color}"')
+    
+    # Create icon from colored SVG
+    renderer = QSvgRenderer(svg_content.encode())
+    
+    # Create pixmaps at different sizes for crisp rendering
+    icon = QIcon()
+    for size in [16, 24, 32, 48]:
+        pixmap = QPixmap(QSize(size, size))
+        pixmap.fill(Qt.transparent)
+        
+        painter = QPainter(pixmap)
+        renderer.render(painter)
+        painter.end()
+        
+        icon.addPixmap(pixmap)
+    
+    return icon
 
 
-def get_fluent_icon_font(size: int = 12) -> QFont:
-    """Get the Segoe Fluent Icons font (Windows 11)."""
-    font = QFont("Segoe Fluent Icons", size)
-    # Fallback to MDL2 if Fluent not available
-    if not QFontDatabase.hasFamily("Segoe Fluent Icons"):
-        font = QFont("Segoe MDL2 Assets", size)
-    return font
+# Icon name constants for easy access
+class IconNames:
+    """Available icon names."""
+    PLAY = "play"
+    STOP = "square"
+    SETTINGS = "settings"
+    TRASH = "trash"
+    FOLDER_OPEN = "folder-open"
+    PLUS = "plus"
+    ARROW_LEFT = "arrow-left"
+    ARROW_RIGHT = "arrow-right"
+    MORE = "more-horizontal"
+
+
+# Catppuccin Mocha colors for icons
+class IconColors:
+    """Color constants for icons matching the theme."""
+    TEXT = "#cdd6f4"
+    GREEN = "#a6e3a1"
+    RED = "#f38ba8"
+    BLUE = "#89b4fa"
+    MUTED = "#6c7086"

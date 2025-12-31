@@ -61,61 +61,114 @@ QPushButton:pressed {
     background-color: #313244;
 }
 
+QPushButton:focus {
+    outline: none;
+}
+
 QPushButton:disabled {
     background-color: #313244;
     color: #6c7086;
 }
 
-/* Primary Button (Add Project) */
+/* Icon Button Styles (action buttons in table) */
+QPushButton[iconButton="true"],
+ActionButton {
+    min-width: 32px;
+    max-width: 32px;
+    min-height: 32px;
+    max-height: 32px;
+    padding: 4px;
+    border-radius: 10px;
+}
+
+/* Action Buttons (Ghost Style) */
+QPushButton[iconButton="true"],
+ActionButton {
+    background-color: transparent;
+    border: 1px solid transparent;
+}
+
+QPushButton[iconButton="true"]:hover,
+ActionButton:hover {
+    background-color: #313244;
+    border: 1px solid #45475a;
+}
+
+QPushButton[iconButton="true"]:focus,
+ActionButton:focus {
+    outline: none;
+    border: 1px solid transparent;
+}
+
+/* Header Buttons (Start All, Stop All, Add Project) */
+QPushButton[headerButton="true"] {
+    padding: 10px 18px;
+    font-size: 14px;
+    border-radius: 8px;
+}
+
+QPushButton[headerButton="true"]:hover {
+    background-color: #313244;
+    border: 1px solid #45475a;
+}
+
+/* Primary Button (Add, Create, Save) */
 QPushButton[primary="true"] {
-    background-color: #89b4fa;
-    color: #1e1e2e;
+    background-color: transparent;
+    color: #89b4fa; /* Blue text/icon initially */
+    border-radius: 10px;
 }
 
 QPushButton[primary="true"]:hover {
-    background-color: #b4befe;
+    background-color: #313244;
+    color: #89b4fa; /* Blue text stays */
+    border: 1px solid #45475a;
 }
 
 QPushButton[primary="true"]:pressed {
-    background-color: #7aa2f7;
+    background-color: #45475a;
 }
 
 /* Success Button (Start) */
 QPushButton[success="true"] {
-    background-color: #a6e3a1;
-    color: #1e1e2e;
+    background-color: transparent;
+    color: #a6e3a1; /* Green text/icon initially */
 }
 
 QPushButton[success="true"]:hover {
-    background-color: #b4f0b0;
+    background-color: #313244;
+    color: #a6e3a1; /* Green text stays */
+    border: 1px solid #45475a;
 }
 
 QPushButton[success="true"]:pressed {
-    background-color: #94d990;
+    background-color: #45475a;
 }
 
 QPushButton[success="true"]:disabled {
-    background-color: #313244;
-    color: #6c7086;
+    background-color: transparent;
+    color: #45475a;
 }
 
 /* Danger Button (Stop, Delete) */
 QPushButton[danger="true"] {
-    background-color: #f38ba8;
-    color: #1e1e2e;
+    background-color: transparent;
+    color: #f38ba8; /* Red text/icon initially */
 }
 
 QPushButton[danger="true"]:hover {
-    background-color: #f5a0b8;
+    background-color: #313244;
+    color: #f38ba8; /* Red text stays */
+    border: 1px solid #45475a;
 }
 
 QPushButton[danger="true"]:pressed {
-    background-color: #e07090;
+    background-color: #45475a;
 }
 
 QPushButton[danger="true"]:disabled {
-    background-color: #313244;
-    color: #6c7086;
+    background-color: transparent;
+    color: #45475a;
 }
 
 /* Menu Bar */

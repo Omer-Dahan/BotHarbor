@@ -3,12 +3,12 @@
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import Qt, Slot
+from PySide6.QtCore import Qt, Slot, QUrl
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QSplitter, QStatusBar, QMenuBar, QMenu, QMessageBox
 )
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QResizeEvent, QDesktopServices
 
 from botharbor.core.process_manager import ProcessManager
 from botharbor.database.database import init_database
@@ -27,7 +27,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         
         self.setWindowTitle("BotHarbor")
-        self.setMinimumSize(1000, 600)
+        # Smaller minimum size for responsive layout
+        self.setMinimumSize(400, 300)
         self.resize(1200, 700)
         
         # Initialize database
@@ -94,21 +95,25 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         
-        # Splitter for dashboard and log viewer
-        splitter = QSplitter(Qt.Horizontal)
+        # Splitter for dashboard and log viewer - responsive orientation
+        self.splitter = QSplitter(Qt.Horizontal)
         
-        # Dashboard (left side)
+        # Dashboard (main content)
         self.dashboard = Dashboard(self.process_manager)
-        splitter.addWidget(self.dashboard)
+        self.splitter.addWidget(self.dashboard)
         
-        # Log viewer (right side)
+        # Log viewer (side panel)
         self.log_viewer = LogViewer()
-        splitter.addWidget(self.log_viewer)
+        self.splitter.addWidget(self.log_viewer)
         
         # Set initial sizes (60% dashboard, 40% logs)
-        splitter.setSizes([600, 400])
+        self.splitter.setSizes([600, 400])
         
-        layout.addWidget(splitter)
+        # Allow collapsing the log viewer
+        self.splitter.setCollapsible(0, False)
+        self.splitter.setCollapsible(1, True)
+        
+        layout.addWidget(self.splitter)
 
     def _setup_status_bar(self):
         """Setup the status bar."""
@@ -194,14 +199,22 @@ class MainWindow(QMainWindow):
 
     def _show_about(self):
         """Show about dialog."""
-        QMessageBox.about(
-            self,
-            "About BotHarbor",
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("About BotHarbor")
+        msg_box.setText(
             "BotHarbor v0.1.0\n\n"
             "A Windows desktop manager for running\n"
             "multiple Python Telegram bots.\n\n"
-            "© 2024 BotHarbor Team"
+            "Created by Omer dahan\n"
+            "© 2025 BotHarbor Team\n\n"
+            "GitHub: https://github.com/Omer-Dahan/BotHarbor"
         )
+        msg_box.setStandardButtons(QMessageBox.Ok)
+        open_github_btn = msg_box.addButton("Open GitHub", QMessageBox.ActionRole)
+        msg_box.exec()
+        
+        if msg_box.clickedButton() == open_github_btn:
+            QDesktopServices.openUrl(QUrl("https://github.com/Omer-Dahan/BotHarbor"))
 
     def closeEvent(self, event):
         """Handle window close - stop all processes."""
@@ -224,3 +237,20 @@ class MainWindow(QMainWindow):
         # Stop all processes
         self.process_manager.stop_all()
         event.accept()
+
+    def resizeEvent(self, event: QResizeEvent):
+        """Handle window resize - adjust splitter orientation for narrow windows."""
+        super().resizeEvent(event)
+        
+        # Switch to vertical layout when window is narrow (like a smartphone)
+        width = event.size().width()
+        if width < 700:
+            if self.splitter.orientation() != Qt.Vertical:
+                self.splitter.setOrientation(Qt.Vertical)
+                # Adjust sizes for vertical layout
+                self.splitter.setSizes([400, 200])
+        else:
+            if self.splitter.orientation() != Qt.Horizontal:
+                self.splitter.setOrientation(Qt.Horizontal)
+                # Restore horizontal sizes
+                self.splitter.setSizes([600, 400])

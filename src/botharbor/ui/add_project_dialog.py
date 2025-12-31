@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Optional
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QSize
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
     QLineEdit, QPushButton, QLabel, QFileDialog,
@@ -11,6 +11,8 @@ from PySide6.QtWidgets import (
 )
 
 from botharbor.utils.helpers import detect_python_interpreter, detect_entry_file, get_python_files
+from botharbor.ui.widgets import ActionButton
+from botharbor.ui.icons import get_icon, IconNames, IconColors
 
 
 class AddProjectDialog(QDialog):
@@ -54,8 +56,10 @@ class AddProjectDialog(QDialog):
         self.folder_input.setReadOnly(True)
         folder_layout.addWidget(self.folder_input)
         
-        browse_btn = QPushButton("Browse...")
+        browse_btn = ActionButton("", "Browse Folder")
+        browse_btn.setIcon(get_icon(IconNames.MORE, IconColors.TEXT))
         browse_btn.clicked.connect(self._on_browse_folder)
+        browse_btn.setProperty("iconButton", True)
         folder_layout.addWidget(browse_btn)
         
         layout.addWidget(folder_group)
@@ -67,7 +71,7 @@ class AddProjectDialog(QDialog):
         
         self.name_input = QLineEdit()
         self.name_input.setPlaceholderText("Enter project name")
-        self.name_input.textChanged.connect(self._validate)
+        # self.name_input.textChanged.connect(self._validate)
         config_layout.addRow("Project Name:", self.name_input)
         
         # Entry file with dropdown and browse button
@@ -78,13 +82,13 @@ class AddProjectDialog(QDialog):
         
         self.entry_combo = QComboBox()
         self.entry_combo.setEditable(True)
-        self.entry_combo.currentTextChanged.connect(self._validate)
+        # self.entry_combo.currentTextChanged.connect(self._validate)
         entry_layout.addWidget(self.entry_combo)
         
-        browse_entry_btn = QPushButton("...")
-        browse_entry_btn.setFixedWidth(40)
-        browse_entry_btn.setToolTip("Browse for entry file")
+        browse_entry_btn = ActionButton("", "Browse Entry File")
+        browse_entry_btn.setIcon(get_icon(IconNames.MORE, IconColors.TEXT))
         browse_entry_btn.clicked.connect(self._on_browse_entry)
+        browse_entry_btn.setProperty("iconButton", True)
         entry_layout.addWidget(browse_entry_btn)
         
         config_layout.addRow("Entry File:", entry_widget)
@@ -97,13 +101,13 @@ class AddProjectDialog(QDialog):
         
         self.interpreter_input = QLineEdit()
         self.interpreter_input.setPlaceholderText("Python interpreter path")
-        self.interpreter_input.textChanged.connect(self._validate)
+        # self.interpreter_input.textChanged.connect(self._validate)
         interp_layout.addWidget(self.interpreter_input)
         
-        browse_interp_btn = QPushButton("...")
-        browse_interp_btn.setFixedWidth(40)
-        browse_interp_btn.setToolTip("Browse for Python interpreter")
+        browse_interp_btn = ActionButton("", "Browse Interpreter")
+        browse_interp_btn.setIcon(get_icon(IconNames.MORE, IconColors.TEXT))
         browse_interp_btn.clicked.connect(self._on_browse_interpreter)
+        browse_interp_btn.setProperty("iconButton", True)
         interp_layout.addWidget(browse_interp_btn)
         
         config_layout.addRow("Interpreter:", interp_widget)
@@ -126,10 +130,12 @@ class AddProjectDialog(QDialog):
         cancel_btn.clicked.connect(self.reject)
         button_layout.addWidget(cancel_btn)
         
-        self.add_btn = QPushButton("+ Add Project")
+        self.add_btn = QPushButton("Add Project")
+        self.add_btn.setIcon(get_icon(IconNames.PLUS, IconColors.BLUE))
+        self.add_btn.setIconSize(QSize(16, 16))
         self.add_btn.setProperty("primary", True)
         self.add_btn.clicked.connect(self._on_add)
-        self.add_btn.setEnabled(False)
+        # self.add_btn.setEnabled(False)  # Always enabled for better UX
         button_layout.addWidget(self.add_btn)
         
         layout.addLayout(button_layout)
@@ -139,7 +145,7 @@ class AddProjectDialog(QDialog):
         folder = QFileDialog.getExistingDirectory(
             self,
             "Select Project Folder",
-            "",
+            self.folder_path or str(Path.home()),
             QFileDialog.ShowDirsOnly
         )
         
@@ -229,22 +235,37 @@ class AddProjectDialog(QDialog):
         self.info_label.setText(" | ".join(info_messages))
         
         # Enable add button if we have required fields
-        self._validate()
+        # self._validate()
 
     def _validate(self) -> bool:
-        """Validate form and enable/disable add button."""
-        valid = bool(
-            self.folder_path and
-            self.name_input.text().strip() and
-            self.entry_combo.currentText().strip() and
-            self.interpreter_input.text().strip()
-        )
-        self.add_btn.setEnabled(valid)
-        return valid
+        """Validate form fields."""
+        if not self.folder_path:
+             return False
+        if not self.name_input.text().strip():
+             return False
+        if not self.entry_combo.currentText().strip():
+             return False
+        if not self.interpreter_input.text().strip():
+             return False
+        return True
 
     def _on_add(self):
         """Handle add button click."""
-        if not self._validate():
+        # Check empty fields
+        if not self.folder_path:
+            QMessageBox.warning(self, "Missing Information", "Please select a project folder.")
+            return
+        if not self.name_input.text().strip():
+            QMessageBox.warning(self, "Missing Information", "Please enter a project name.")
+            self.name_input.setFocus()
+            return
+        if not self.entry_combo.currentText().strip():
+            QMessageBox.warning(self, "Missing Information", "Please select an entry file.")
+            self.entry_combo.setFocus()
+            return
+        if not self.interpreter_input.text().strip():
+            QMessageBox.warning(self, "Missing Information", "Please select a Python interpreter.")
+            self.interpreter_input.setFocus()
             return
         
         # Verify entry file exists

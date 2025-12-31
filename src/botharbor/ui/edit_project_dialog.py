@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Optional
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QSize
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
     QLineEdit, QPushButton, QLabel, QFileDialog,
@@ -13,6 +13,8 @@ from PySide6.QtWidgets import (
 from botharbor.database.models import Project
 from botharbor.database import crud
 from botharbor.utils.helpers import detect_python_interpreter, get_python_files
+from botharbor.ui.widgets import ActionButton
+from botharbor.ui.icons import get_icon, IconNames, IconColors
 
 
 class EditProjectDialog(QDialog):
@@ -59,10 +61,10 @@ class EditProjectDialog(QDialog):
         self.folder_input.setReadOnly(True)
         folder_layout_inner.addWidget(self.folder_input)
         
-        browse_folder_btn = QPushButton("...")
-        browse_folder_btn.setFixedWidth(40)
-        browse_folder_btn.setToolTip("Browse for folder")
+        browse_folder_btn = ActionButton("", "Browse Folder")
+        browse_folder_btn.setIcon(get_icon(IconNames.MORE, IconColors.TEXT))
         browse_folder_btn.clicked.connect(self._on_browse_folder)
+        browse_folder_btn.setProperty("iconButton", True)
         folder_layout_inner.addWidget(browse_folder_btn)
         
         info_layout.addRow("Folder:", folder_widget)
@@ -84,10 +86,10 @@ class EditProjectDialog(QDialog):
         self.entry_combo.setEditable(True)
         entry_layout_inner.addWidget(self.entry_combo)
         
-        browse_entry_btn = QPushButton("...")
-        browse_entry_btn.setFixedWidth(40)
-        browse_entry_btn.setToolTip("Browse for entry file")
+        browse_entry_btn = ActionButton("", "Browse Entry File")
+        browse_entry_btn.setIcon(get_icon(IconNames.MORE, IconColors.TEXT))
         browse_entry_btn.clicked.connect(self._on_browse_entry)
+        browse_entry_btn.setProperty("iconButton", True)
         entry_layout_inner.addWidget(browse_entry_btn)
         
         exec_layout.addRow("Entry File:", entry_widget)
@@ -101,10 +103,10 @@ class EditProjectDialog(QDialog):
         self.interpreter_input = QLineEdit()
         interp_layout_inner.addWidget(self.interpreter_input)
         
-        browse_interp_btn = QPushButton("...")
-        browse_interp_btn.setFixedWidth(40)
-        browse_interp_btn.setToolTip("Browse for Python interpreter")
+        browse_interp_btn = ActionButton("", "Browse Interpreter")
+        browse_interp_btn.setIcon(get_icon(IconNames.MORE, IconColors.TEXT))
         browse_interp_btn.clicked.connect(self._on_browse_interpreter)
+        browse_interp_btn.setProperty("iconButton", True)
         interp_layout_inner.addWidget(browse_interp_btn)
         
         detect_btn = QPushButton("Auto")
@@ -129,6 +131,8 @@ class EditProjectDialog(QDialog):
         
         self.save_btn = QPushButton("Save Changes")
         self.save_btn.setProperty("primary", True)
+        self.save_btn.setIcon(get_icon(IconNames.FOLDER_OPEN, IconColors.BLUE)) # Using Save/Folder icon
+        self.save_btn.setIconSize(QSize(16, 16))
         self.save_btn.clicked.connect(self._on_save)
         button_layout.addWidget(self.save_btn)
         

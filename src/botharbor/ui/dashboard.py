@@ -2,31 +2,20 @@
 
 from typing import Optional
 
-from PySide6.QtCore import Qt, Signal, Slot, QTimer
+from PySide6.QtCore import Qt, Signal, Slot, QTimer, QSize, QPropertyAnimation, QEasingCurve
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
     QPushButton, QLabel, QHeaderView, QAbstractItemView, QMessageBox
 )
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QColor, QBrush
 
 from botharbor.core.process_manager import ProcessManager, ProcessStatus
 from botharbor.database.models import Project
 from botharbor.database import crud
 from botharbor.utils.helpers import format_uptime
+from botharbor.ui.icons import get_icon, IconNames, IconColors
+from botharbor.ui.widgets import ActionButton, HeaderButton
 
-
-class ActionButton(QPushButton):
-    """Compact action button with text label."""
-    
-    def __init__(self, text: str, tooltip: str = "", parent=None):
-        super().__init__(text, parent)
-        self.setToolTip(tooltip)
-        self.setFixedHeight(28)
-        self.setMinimumWidth(28)
-        self.setCursor(Qt.PointingHandCursor)
-        font = self.font()
-        font.setPointSize(9)
-        self.setFont(font)
 
 
 class Dashboard(QWidget):
@@ -72,21 +61,27 @@ class Dashboard(QWidget):
         
         header_layout.addStretch()
         
-        # Top action buttons with text
-        self.start_all_btn = QPushButton("► Start All")
+        # Top action buttons with icons - reduced spacing
+        self.start_all_btn = HeaderButton("Start All")
+        self.start_all_btn.setIcon(get_icon(IconNames.PLAY, IconColors.TEXT))
         self.start_all_btn.setProperty("success", True)
         self.start_all_btn.clicked.connect(self._on_start_all)
         header_layout.addWidget(self.start_all_btn)
         
-        self.stop_all_btn = QPushButton("■ Stop All")
+        self.stop_all_btn = HeaderButton("Stop All")
+        self.stop_all_btn.setIcon(get_icon(IconNames.STOP, IconColors.TEXT))
         self.stop_all_btn.setProperty("danger", True)
         self.stop_all_btn.clicked.connect(self._on_stop_all)
         header_layout.addWidget(self.stop_all_btn)
         
-        self.add_btn = QPushButton("+ Add Project")
+        self.add_btn = HeaderButton("Add Project")
+        self.add_btn.setIcon(get_icon(IconNames.PLUS, IconColors.BLUE))
         self.add_btn.setProperty("primary", True)
         self.add_btn.clicked.connect(lambda: self.request_add_project.emit())
         header_layout.addWidget(self.add_btn)
+        
+        # Reduce spacing between header buttons
+        header_layout.setSpacing(8)
         
         layout.addLayout(header_layout)
 
@@ -104,6 +99,9 @@ class Dashboard(QWidget):
         self.table.verticalHeader().setVisible(False)
         self.table.setShowGrid(False)
         
+        # Single click on row shows logs
+        self.table.cellClicked.connect(self._on_row_clicked)
+        # Double click also works
         self.table.cellDoubleClicked.connect(self._on_row_double_clicked)
         
         layout.addWidget(self.table)
@@ -143,10 +141,11 @@ class Dashboard(QWidget):
         name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable)
         self.table.setItem(row, self.COL_NAME, name_item)
         
-        # Status
+        # Status with color
         status = self.process_manager.get_status(project.id)
         status_item = QTableWidgetItem(self._get_status_display(status))
         status_item.setFlags(status_item.flags() & ~Qt.ItemIsEditable)
+        status_item.setForeground(self._get_status_color(status))
         self.table.setItem(row, self.COL_STATUS, status_item)
         
         # Uptime
@@ -161,7 +160,7 @@ class Dashboard(QWidget):
         self.table.setCellWidget(row, self.COL_ACTIONS, actions_widget)
         
         # Set row height
-        self.table.setRowHeight(row, 50)
+        self.table.setRowHeight(row, 70)
 
     def _get_status_display(self, status: ProcessStatus) -> str:
         """Get display text for a status."""
@@ -174,41 +173,53 @@ class Dashboard(QWidget):
         }
         return status_map.get(status, "● Unknown")
 
+    def _get_status_color(self, status: ProcessStatus) -> QBrush:
+        """Get color for a status."""
+        color_map = {
+            ProcessStatus.STOPPED: QColor("#6c7086"),    # Muted gray
+            ProcessStatus.STARTING: QColor("#f9e2af"),   # Yellow
+            ProcessStatus.RUNNING: QColor("#a6e3a1"),    # Green
+            ProcessStatus.STOPPING: QColor("#f9e2af"),   # Yellow
+            ProcessStatus.CRASHED: QColor("#f38ba8"),    # Red
+        }
+        return QBrush(color_map.get(status, QColor("#cdd6f4")))
+
     def _create_actions_widget(self, project_id: int, status: ProcessStatus) -> QWidget:
         """Create the actions widget for a row."""
         widget = QWidget()
+        widget.setAttribute(Qt.WA_TranslucentBackground)
+        widget.setStyleSheet("background-color: transparent;")
         layout = QHBoxLayout(widget)
         layout.setContentsMargins(4, 4, 4, 4)
         layout.setSpacing(4)
         
         is_running = status in (ProcessStatus.RUNNING, ProcessStatus.STARTING)
         
-        # Start button
-        start_btn = ActionButton("►", "Start")
+        # Start button with SVG icon
+        start_btn = ActionButton("", "Start")
+        start_btn.setIcon(get_icon(IconNames.PLAY, IconColors.GREEN if not is_running else IconColors.MUTED))
         start_btn.setEnabled(not is_running)
         start_btn.setProperty("success", True)
         start_btn.clicked.connect(lambda checked, pid=project_id: self._on_start_project(pid))
         layout.addWidget(start_btn)
         
-        # Stop button
-        stop_btn = ActionButton("■", "Stop")
+        # Stop button with SVG icon
+        stop_btn = ActionButton("", "Stop")
+        stop_btn.setIcon(get_icon(IconNames.STOP, IconColors.RED if is_running else IconColors.MUTED))
         stop_btn.setEnabled(is_running)
         stop_btn.setProperty("danger", True)
         stop_btn.clicked.connect(lambda checked, pid=project_id: self._on_stop_project(pid))
         layout.addWidget(stop_btn)
         
-        # Logs button
-        logs_btn = ActionButton("Log", "View Logs")
-        logs_btn.clicked.connect(lambda checked, pid=project_id: self._on_view_logs(pid))
-        layout.addWidget(logs_btn)
-        
-        # Settings/Edit button
-        edit_btn = ActionButton("⚙", "Settings")
+        # Settings/Edit button with SVG icon
+        edit_btn = ActionButton("", "Settings")
+        edit_btn.setIcon(get_icon(IconNames.SETTINGS, IconColors.TEXT))
         edit_btn.clicked.connect(lambda checked, pid=project_id: self._on_edit_project(pid))
         layout.addWidget(edit_btn)
         
-        # Delete button
-        delete_btn = ActionButton("✕", "Delete")
+        # Delete button with SVG icon
+        delete_btn = ActionButton("", "Delete")
+        delete_btn.setIcon(get_icon(IconNames.TRASH, IconColors.RED if not is_running else IconColors.MUTED))
         delete_btn.setProperty("danger", True)
         delete_btn.setEnabled(not is_running)  # Can't delete while running
         delete_btn.clicked.connect(lambda checked, pid=project_id: self._on_delete_project(pid))
@@ -268,6 +279,13 @@ class Dashboard(QWidget):
         """Stop all running projects."""
         self.process_manager.stop_all()
 
+    def _on_row_clicked(self, row: int, col: int):
+        """Handle click on a row - show logs for project."""
+        if row < len(self.projects):
+            project = self.projects[row]
+            # Emit signal to show logs
+            self.request_view_logs.emit(project.id, project.name)
+
     def _on_row_double_clicked(self, row: int, col: int):
         """Handle double-click on a row."""
         if row < len(self.projects):
@@ -282,9 +300,10 @@ class Dashboard(QWidget):
             if project.id == project_id:
                 status = ProcessStatus(status_str)
                 
-                # Update status cell
+                # Update status cell with color
                 status_item = QTableWidgetItem(self._get_status_display(status))
                 status_item.setFlags(status_item.flags() & ~Qt.ItemIsEditable)
+                status_item.setForeground(self._get_status_color(status))
                 self.table.setItem(row, self.COL_STATUS, status_item)
                 
                 # Recreate actions widget with updated button states
