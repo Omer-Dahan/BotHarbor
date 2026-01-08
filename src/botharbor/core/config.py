@@ -5,12 +5,17 @@ from pathlib import Path
 
 
 def get_data_dir() -> Path:
-    """Get the application data directory. Creates it if it doesn't exist."""
-    # Use the project root's data folder
-    # In development: BotHarbor/data
-    # Could be changed to %APPDATA%/BotHarbor for installed version
-    base_dir = Path(__file__).parent.parent.parent.parent  # src/botharbor/core -> BotHarbor
-    data_dir = base_dir / "data"
+    """Get the application data directory. Creates it if it doesn't exist.
+    
+    Uses %LOCALAPPDATA%\\BotHarbor\\ on Windows for installer compatibility.
+    This keeps user data separate from Program Files (read-only).
+    """
+    local_app_data = os.environ.get("LOCALAPPDATA")
+    if local_app_data:
+        data_dir = Path(local_app_data) / "BotHarbor"
+    else:
+        # Fallback for non-Windows or missing env var
+        data_dir = Path.home() / ".botharbor"
     data_dir.mkdir(parents=True, exist_ok=True)
     return data_dir
 

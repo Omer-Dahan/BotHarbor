@@ -3,14 +3,15 @@
 Modern, clean SVG icons that scale perfectly at any DPI.
 """
 
-from pathlib import Path
 from PySide6.QtGui import QIcon, QPixmap, QPainter, QColor
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtSvg import QSvgRenderer
 
+from botharbor.utils.helpers import resource_path
 
-# Path to icons directory
-ICONS_DIR = Path(__file__).parent / "assets" / "icons"
+
+# Path to icons directory (works in both dev and packaged mode)
+ICONS_DIR = resource_path("ui/assets/icons")
 
 
 def get_icon(name: str, color: str = "#cdd6f4") -> QIcon:

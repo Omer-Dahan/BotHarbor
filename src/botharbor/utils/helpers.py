@@ -8,6 +8,23 @@ from typing import Optional
 from botharbor.core.config import DEFAULT_ENTRY_PATTERNS, VENV_PYTHON_PATHS
 
 
+def resource_path(relative_path: str) -> Path:
+    """Get absolute path to resource, works for dev and PyInstaller.
+    
+    In packaged app: resources are relative to executable directory.
+    In development: resources are relative to package root (src/botharbor).
+    
+    The PyInstaller spec must bundle resources to match this layout.
+    """
+    if getattr(sys, 'frozen', False):
+        # Running as PyInstaller bundle
+        base_path = Path(sys.executable).parent
+    else:
+        # Running in development
+        base_path = Path(__file__).parent.parent
+    return base_path / relative_path
+
+
 def detect_python_interpreter(project_folder: str) -> str:
     """
     Detect the Python interpreter to use for a project.
@@ -15,7 +32,10 @@ def detect_python_interpreter(project_folder: str) -> str:
     Priority:
     1. .venv/Scripts/python.exe
     2. venv/Scripts/python.exe
-    3. System Python (fallback)
+    3. Returns empty string (UI must warn user to select manually)
+    
+    Note: We intentionally do NOT fall back to sys.executable because
+    in a packaged app, sys.executable points to the app .exe, not Python.
     """
     folder = Path(project_folder)
     
@@ -24,8 +44,8 @@ def detect_python_interpreter(project_folder: str) -> str:
         if python_path.exists():
             return str(python_path.resolve())
     
-    # Fallback to system Python
-    return sys.executable
+    # No venv found - return empty, let UI handle warning
+    return ""
 
 
 def detect_entry_file(project_folder: str) -> Optional[str]:

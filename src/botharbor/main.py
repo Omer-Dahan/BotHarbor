@@ -1,18 +1,18 @@
 """BotHarbor application entry point."""
 
 import sys
-from pathlib import Path
 
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QFile, QTextStream
 
 from botharbor.ui.main_window import MainWindow
+from botharbor.utils.helpers import resource_path
 
 
 def load_stylesheet(app: QApplication):
     """Load the application stylesheet."""
-    # Find styles.qss relative to this file
-    styles_path = Path(__file__).parent / "ui" / "styles.qss"
+    # Use resource_path for packaged app compatibility
+    styles_path = resource_path("ui/styles.qss")
     
     if styles_path.exists():
         file = QFile(str(styles_path))

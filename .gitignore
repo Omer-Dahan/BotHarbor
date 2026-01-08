@@ -32,7 +32,8 @@ Thumbs.db
 # Build / dist
 build/
 dist/
-*.spec
+installer_output/
 
-# SQLite
+# Data / Database
+data/
 *.db
