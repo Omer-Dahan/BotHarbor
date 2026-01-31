@@ -89,7 +89,7 @@ HAMAL/
 
 ### 2. Clone the Repository
 ```bash
-git clone https://github.com/Omer-Dahan/HAMAL.git
+git clone https://github.com/Omer-Dahan/H.A.M.A.L.git
 cd HAMAL
 ```
 
