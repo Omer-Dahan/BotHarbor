@@ -1,76 +1,77 @@
-"""Icon utilities using SVG icons from Lucide.
+"""Icon resources for BotHarbor."""
 
-Modern, clean SVG icons that scale perfectly at any DPI.
-"""
-
-from PySide6.QtGui import QIcon, QPixmap, QPainter, QColor
-from PySide6.QtCore import QSize, Qt
-from PySide6.QtSvg import QSvgRenderer
-
-from botharbor.utils.helpers import resource_path
+import os
+import sys
+from pathlib import Path
+from PIL import Image
+import customtkinter as ctk
 
 
-# Path to icons directory (works in both dev and packaged mode)
-ICONS_DIR = resource_path("ui/assets/icons")
-
-
-def get_icon(name: str, color: str = "#cdd6f4") -> QIcon:
-    """Load SVG icon by name with specified color.
+def get_icons_dir() -> Path:
+    """Get the icons directory path, works both in dev and packaged app."""
+    # When running as packaged app
+    if getattr(sys, 'frozen', False):
+        base = Path(sys._MEIPASS)
+        return base / "assets" / "icons"
     
-    Args:
-        name: Icon name without .svg extension (e.g., 'play', 'settings')
-        color: Hex color for the icon stroke (default: Catppuccin text color)
+    # When running in development
+    current_file = Path(__file__).resolve()
+    return current_file.parent / "assets" / "icons"
+
+
+class Icons:
+    """Manages application icons."""
     
-    Returns:
-        QIcon ready for use in buttons/widgets
-    """
-    icon_path = ICONS_DIR / f"{name}.svg"
+    _icons: dict = {}
+    _loaded: bool = False
     
-    if not icon_path.exists():
-        # Return empty icon if not found
-        return QIcon()
-    
-    # Read and color the SVG
-    svg_content = icon_path.read_text(encoding="utf-8")
-    svg_content = svg_content.replace('stroke="currentColor"', f'stroke="{color}"')
-    
-    # Create icon from colored SVG
-    renderer = QSvgRenderer(svg_content.encode())
-    
-    # Create pixmaps at different sizes for crisp rendering
-    icon = QIcon()
-    for size in [16, 24, 32, 48]:
-        pixmap = QPixmap(QSize(size, size))
-        pixmap.fill(Qt.transparent)
+    @classmethod
+    def load(cls):
+        """Load all icons into memory."""
+        if cls._loaded:
+            return
         
-        painter = QPainter(pixmap)
-        renderer.render(painter)
-        painter.end()
+        icon_names = [
+            "play", "stop", "plus", "settings", 
+            "trash", "logs", "folder", "clear"
+        ]
         
-        icon.addPixmap(pixmap)
+        icons_dir = get_icons_dir()
+        print(f"[Icons] Loading from: {icons_dir}")
+        
+        for name in icon_names:
+            path = icons_dir / f"{name}.png"
+            try:
+                if path.exists():
+                    img = Image.open(path)
+                    cls._icons[name] = ctk.CTkImage(
+                        light_image=img,
+                        dark_image=img,
+                        size=(18, 18)
+                    )
+                    print(f"[Icons] Loaded: {name}")
+                else:
+                    print(f"[Icons] Not found: {path}")
+            except Exception as e:
+                print(f"[Icons] Error loading {name}: {e}")
+        
+        cls._loaded = True
     
-    return icon
+    @classmethod
+    def get(cls, name: str) -> ctk.CTkImage | None:
+        """Get an icon by name."""
+        if not cls._loaded:
+            cls.load()
+        return cls._icons.get(name)
 
 
-# Icon name constants for easy access
-class IconNames:
-    """Available icon names."""
-    PLAY = "play"
-    STOP = "square"
-    SETTINGS = "settings"
-    TRASH = "trash"
-    FOLDER_OPEN = "folder-open"
-    PLUS = "plus"
-    ARROW_LEFT = "arrow-left"
-    ARROW_RIGHT = "arrow-right"
-    MORE = "more-horizontal"
-
-
-# Catppuccin Mocha colors for icons
-class IconColors:
-    """Color constants for icons matching the theme."""
-    TEXT = "#cdd6f4"
-    GREEN = "#a6e3a1"
-    RED = "#f38ba8"
-    BLUE = "#89b4fa"
-    MUTED = "#6c7086"
+# Text fallback symbols (used if icons fail to load)
+class Symbols:
+    PLAY = "▶"
+    STOP = "■"
+    PLUS = "+"
+    SETTINGS = "⚙"
+    TRASH = "✕"
+    LOGS = "📋"
+    FOLDER = "📂"
+    CLEAR = "🗑"

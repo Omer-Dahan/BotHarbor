@@ -1,3 +1,6 @@
-"""BotHarbor - Windows desktop manager for Python Telegram bots."""
+"""BotHarbor - Script Runner Application.
 
-__version__ = "0.1.0"
+Modern CustomTkinter-based interface for managing and running scripts.
+"""
+
+__version__ = "1.0.0"

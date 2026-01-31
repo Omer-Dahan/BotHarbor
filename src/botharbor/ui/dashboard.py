@@ -1,334 +1,438 @@
-"""Dashboard widget showing project table."""
+"""Dashboard widget with project table using CustomTkinter."""
 
-from typing import Optional
+import customtkinter as ctk
+from tkinter import messagebox
+from typing import Callable, Optional
 
-from PySide6.QtCore import Qt, Signal, Slot, QTimer, QSize, QPropertyAnimation, QEasingCurve
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
-    QPushButton, QLabel, QHeaderView, QAbstractItemView, QMessageBox
-)
-from PySide6.QtGui import QFont, QColor, QBrush
-
-from botharbor.core.process_manager import ProcessManager, ProcessStatus
-from botharbor.database.models import Project
 from botharbor.database import crud
+from botharbor.database.models import Project
+from botharbor.core.process_manager import ProcessManager, ProcessStatus
 from botharbor.utils.helpers import format_uptime
-from botharbor.ui.icons import get_icon, IconNames, IconColors
-from botharbor.ui.widgets import ActionButton, HeaderButton
+from botharbor.ui.icons import Icons
 
 
+# Catppuccin Mocha colors
+COLORS = {
+    "base": "#1e1e2e",
+    "surface": "#313244",
+    "overlay": "#45475a",
+    "text": "#cdd6f4",
+    "subtext": "#a6adc8",
+    "green": "#a6e3a1",
+    "red": "#f38ba8",
+    "blue": "#89b4fa",
+    "yellow": "#f9e2af",
+    "mauve": "#cba6f7",
+}
 
-class Dashboard(QWidget):
+
+class Dashboard(ctk.CTkFrame):
     """Main dashboard with project table and controls."""
     
-    # Signals
-    project_selected = Signal(int, str)  # project_id, project_name
-    request_add_project = Signal()
-    request_view_logs = Signal(int, str)  # project_id, project_name
-    request_edit_project = Signal(int)    # project_id
-    request_delete_project = Signal(int)  # project_id
-
-    # Column indices
-    COL_NAME = 0
-    COL_STATUS = 1
-    COL_UPTIME = 2
-    COL_ACTIONS = 3
-
-    def __init__(self, process_manager: ProcessManager, parent=None):
-        super().__init__(parent)
+    def __init__(
+        self, 
+        master, 
+        process_manager: ProcessManager,
+        on_view_logs: Callable[[int, str], None],
+        **kwargs
+    ):
+        super().__init__(master, fg_color="transparent", **kwargs)
+        
         self.process_manager = process_manager
-        self.projects: list[Project] = []
+        self.on_view_logs = on_view_logs
+        self.project_rows: dict[int, dict] = {}  # project_id -> row widgets
+        
+        # Ensure icons are loaded
+        Icons.load()
         
         self._setup_ui()
-        self._connect_signals()
+        self._refresh_projects()
         
-        # Timer for updating uptime
-        self.uptime_timer = QTimer(self)
-        self.uptime_timer.timeout.connect(self._update_uptimes)
-        self.uptime_timer.start(1000)  # Update every second
-
+        # Start uptime update timer
+        self._update_uptimes()
+    
     def _setup_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(12)
-
-        # Header
-        header_layout = QHBoxLayout()
+        """Setup the dashboard UI."""
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=1)
         
-        title = QLabel("Projects")
-        title.setObjectName("titleLabel")
-        header_layout.addWidget(title)
+        # === HEADER ===
+        self.header = ctk.CTkFrame(self, fg_color="transparent")
+        self.header.grid(row=0, column=0, padx=5, pady=(5, 10), sticky="ew")
+        self.header.grid_columnconfigure(0, weight=1)
         
-        header_layout.addStretch()
+        # Title
+        self.title = ctk.CTkLabel(
+            self.header,
+            text="Projects",
+            font=ctk.CTkFont(size=22, weight="bold"),
+            text_color=COLORS["text"]
+        )
+        self.title.grid(row=0, column=0, sticky="w", padx=5)
         
-        # Top action buttons with icons - reduced spacing
-        self.start_all_btn = HeaderButton("Start All")
-        self.start_all_btn.setIcon(get_icon(IconNames.PLAY, IconColors.TEXT))
-        self.start_all_btn.setProperty("success", True)
-        self.start_all_btn.clicked.connect(self._on_start_all)
-        header_layout.addWidget(self.start_all_btn)
+        # Buttons frame
+        self.buttons_frame = ctk.CTkFrame(self.header, fg_color="transparent")
+        self.buttons_frame.grid(row=0, column=1, sticky="e")
         
-        self.stop_all_btn = HeaderButton("Stop All")
-        self.stop_all_btn.setIcon(get_icon(IconNames.STOP, IconColors.TEXT))
-        self.stop_all_btn.setProperty("danger", True)
-        self.stop_all_btn.clicked.connect(self._on_stop_all)
-        header_layout.addWidget(self.stop_all_btn)
+        # Start All button
+        self.start_all_btn = ctk.CTkButton(
+            self.buttons_frame,
+            text="Start All",
+            image=Icons.get("play"),
+            font=ctk.CTkFont(size=12, weight="bold"),
+            width=110,
+            height=32,
+            corner_radius=6,
+            fg_color=COLORS["green"],
+            hover_color="#86c381",
+            text_color="#1e1e2e",
+            compound="left",
+            command=self._on_start_all
+        )
+        self.start_all_btn.pack(side="left", padx=3)
         
-        self.add_btn = HeaderButton("Add Project")
-        self.add_btn.setIcon(get_icon(IconNames.PLUS, IconColors.BLUE))
-        self.add_btn.setProperty("primary", True)
-        self.add_btn.clicked.connect(lambda: self.request_add_project.emit())
-        header_layout.addWidget(self.add_btn)
+        # Stop All button
+        self.stop_all_btn = ctk.CTkButton(
+            self.buttons_frame,
+            text="Stop All",
+            image=Icons.get("stop"),
+            font=ctk.CTkFont(size=12, weight="bold"),
+            width=110,
+            height=32,
+            corner_radius=6,
+            fg_color=COLORS["red"],
+            hover_color="#e06080",
+            text_color="#1e1e2e",
+            compound="left",
+            command=self._on_stop_all
+        )
+        self.stop_all_btn.pack(side="left", padx=3)
         
-        # Reduce spacing between header buttons
-        header_layout.setSpacing(8)
+        # Add Project button
+        self.add_btn = ctk.CTkButton(
+            self.buttons_frame,
+            text="Add Project",
+            image=Icons.get("plus"),
+            font=ctk.CTkFont(size=12, weight="bold"),
+            width=130,
+            height=32,
+            corner_radius=6,
+            fg_color=COLORS["blue"],
+            hover_color="#6994d8",
+            text_color="#1e1e2e",
+            compound="left",
+            command=self._on_add_project
+        )
+        self.add_btn.pack(side="left", padx=3)
         
-        layout.addLayout(header_layout)
-
-        # Table
-        self.table = QTableWidget()
-        self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["Project", "Status", "Uptime", "Actions"])
-        self.table.horizontalHeader().setSectionResizeMode(self.COL_NAME, QHeaderView.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(self.COL_STATUS, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(self.COL_UPTIME, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(self.COL_ACTIONS, QHeaderView.ResizeToContents)
-        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.table.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.table.setAlternatingRowColors(True)
-        self.table.verticalHeader().setVisible(False)
-        self.table.setShowGrid(False)
+        # === TABLE CONTAINER ===
+        self.table_container = ctk.CTkFrame(self, fg_color=COLORS["surface"], corner_radius=8)
+        self.table_container.grid(row=1, column=0, padx=5, pady=5, sticky="nsew")
+        self.table_container.grid_columnconfigure(0, weight=1)
+        self.table_container.grid_rowconfigure(1, weight=1)
         
-        # Single click on row shows logs
-        self.table.cellClicked.connect(self._on_row_clicked)
-        # Double click also works
-        self.table.cellDoubleClicked.connect(self._on_row_double_clicked)
+        # Table header
+        self.table_header = ctk.CTkFrame(self.table_container, fg_color=COLORS["overlay"], corner_radius=0)
+        self.table_header.grid(row=0, column=0, sticky="ew", padx=2, pady=(2, 0))
         
-        layout.addWidget(self.table)
-
+        # Header columns
+        headers = [("Project", 180), ("Status", 100), ("Uptime", 90), ("Actions", 200)]
+        for i, (text, width) in enumerate(headers):
+            lbl = ctk.CTkLabel(
+                self.table_header,
+                text=text,
+                font=ctk.CTkFont(size=12, weight="bold"),
+                text_color=COLORS["subtext"],
+                width=width,
+                anchor="w" if i == 0 else "center"
+            )
+            lbl.grid(row=0, column=i, padx=10, pady=8, sticky="w" if i == 0 else "")
+        
+        self.table_header.grid_columnconfigure(0, weight=1)
+        
+        # Scrollable table body
+        self.table_body = ctk.CTkScrollableFrame(
+            self.table_container,
+            fg_color="transparent",
+            scrollbar_button_color=COLORS["overlay"],
+            scrollbar_button_hover_color=COLORS["blue"]
+        )
+        self.table_body.grid(row=1, column=0, sticky="nsew", padx=2, pady=2)
+        self.table_body.grid_columnconfigure(0, weight=1)
+        
         # Empty state
-        self.empty_label = QLabel("No projects yet. Click 'Add Project' to get started.")
-        self.empty_label.setObjectName("subtitleLabel")
-        self.empty_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.empty_label)
-
-    def _connect_signals(self):
-        """Connect to ProcessManager signals."""
-        self.process_manager.status_changed.connect(self._on_status_changed)
-
-    def refresh_projects(self):
+        self.empty_label = ctk.CTkLabel(
+            self.table_body,
+            text="No projects yet.\nClick '+ Add Project' to get started!",
+            font=ctk.CTkFont(size=14),
+            text_color=COLORS["subtext"]
+        )
+    
+    def _refresh_projects(self):
         """Refresh the project list from database."""
-        self.projects = crud.get_all_projects()
-        self._rebuild_table()
-
-    def _rebuild_table(self):
-        """Rebuild the table from current projects."""
-        self.table.setRowCount(len(self.projects))
+        # Clear existing rows
+        for row_widgets in self.project_rows.values():
+            row_widgets["frame"].destroy()
+        self.project_rows.clear()
         
-        for row, project in enumerate(self.projects):
-            self._setup_row(row, project)
+        # Get projects
+        projects = crud.get_all_projects()
         
-        # Show/hide empty state
-        has_projects = len(self.projects) > 0
-        self.table.setVisible(has_projects)
-        self.empty_label.setVisible(not has_projects)
-
-    def _setup_row(self, row: int, project: Project):
-        """Setup a single row in the table."""
-        # Name
-        name_item = QTableWidgetItem(project.name)
-        name_item.setData(Qt.UserRole, project.id)
-        name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable)
-        self.table.setItem(row, self.COL_NAME, name_item)
+        if not projects:
+            self.empty_label.grid(row=0, column=0, pady=50)
+            return
         
-        # Status with color
+        self.empty_label.grid_forget()
+        
+        # Create rows
+        for i, project in enumerate(projects):
+            self._create_project_row(i, project)
+    
+    def _create_project_row(self, row_index: int, project: Project):
+        """Create a single project row."""
         status = self.process_manager.get_status(project.id)
-        status_item = QTableWidgetItem(self._get_status_display(status))
-        status_item.setFlags(status_item.flags() & ~Qt.ItemIsEditable)
-        status_item.setForeground(self._get_status_color(status))
-        self.table.setItem(row, self.COL_STATUS, status_item)
+        
+        # Row frame
+        row_frame = ctk.CTkFrame(self.table_body, fg_color="transparent", height=50)
+        row_frame.grid(row=row_index, column=0, sticky="ew", pady=1)
+        row_frame.grid_columnconfigure(0, weight=1)
+        
+        # Project name
+        name_label = ctk.CTkLabel(
+            row_frame,
+            text=project.name,
+            font=ctk.CTkFont(size=13),
+            text_color=COLORS["text"],
+            width=180,
+            anchor="w"
+        )
+        name_label.grid(row=0, column=0, padx=10, pady=8, sticky="w")
+        
+        # Status with dot
+        status_frame = ctk.CTkFrame(row_frame, fg_color="transparent", width=100)
+        status_frame.grid(row=0, column=1, padx=10, pady=8)
+        
+        status_dot = ctk.CTkLabel(
+            status_frame,
+            text="●",
+            font=ctk.CTkFont(size=10),
+            width=15
+        )
+        status_dot.pack(side="left")
+        
+        status_text = ctk.CTkLabel(
+            status_frame,
+            text="Stopped",
+            font=ctk.CTkFont(size=12),
+            text_color=COLORS["subtext"]
+        )
+        status_text.pack(side="left", padx=2)
         
         # Uptime
-        uptime = self.process_manager.get_uptime(project.id)
-        uptime_text = format_uptime(uptime) if uptime else "-"
-        uptime_item = QTableWidgetItem(uptime_text)
-        uptime_item.setFlags(uptime_item.flags() & ~Qt.ItemIsEditable)
-        self.table.setItem(row, self.COL_UPTIME, uptime_item)
+        uptime_label = ctk.CTkLabel(
+            row_frame,
+            text="-",
+            font=ctk.CTkFont(size=12),
+            text_color=COLORS["subtext"],
+            width=90
+        )
+        uptime_label.grid(row=0, column=2, padx=10, pady=8)
         
-        # Actions
-        actions_widget = self._create_actions_widget(project.id, status)
-        self.table.setCellWidget(row, self.COL_ACTIONS, actions_widget)
+        # Actions frame
+        actions_frame = ctk.CTkFrame(row_frame, fg_color="transparent", width=200)
+        actions_frame.grid(row=0, column=3, padx=10, pady=8)
         
-        # Set row height
-        self.table.setRowHeight(row, 70)
-
-    def _get_status_display(self, status: ProcessStatus) -> str:
-        """Get display text for a status."""
-        status_map = {
-            ProcessStatus.STOPPED: "● Stopped",
-            ProcessStatus.STARTING: "● Starting...",
-            ProcessStatus.RUNNING: "● Running",
-            ProcessStatus.STOPPING: "● Stopping...",
-            ProcessStatus.CRASHED: "● Crashed",
+        # Play button
+        play_btn = ctk.CTkButton(
+            actions_frame,
+            text="",
+            image=Icons.get("play"),
+            width=32,
+            height=32,
+            corner_radius=4,
+            fg_color=COLORS["green"],
+            hover_color="#86c381",
+            text_color="#1e1e2e",
+            command=lambda pid=project.id: self._on_start_project(pid)
+        )
+        play_btn.pack(side="left", padx=2)
+        
+        # Stop button
+        stop_btn = ctk.CTkButton(
+            actions_frame,
+            text="",
+            image=Icons.get("stop"),
+            width=32,
+            height=32,
+            corner_radius=4,
+            fg_color=COLORS["red"],
+            hover_color="#e06080",
+            text_color="#1e1e2e",
+            command=lambda pid=project.id: self._on_stop_project(pid)
+        )
+        stop_btn.pack(side="left", padx=2)
+        
+        # Log button
+        log_btn = ctk.CTkButton(
+            actions_frame,
+            text="",
+            image=Icons.get("logs"),
+            width=32,
+            height=32,
+            corner_radius=4,
+            fg_color=COLORS["overlay"],
+            hover_color=COLORS["blue"],
+            text_color=COLORS["text"],
+            command=lambda pid=project.id, pname=project.name: self.on_view_logs(pid, pname)
+        )
+        log_btn.pack(side="left", padx=2)
+        
+        # Settings/Edit button
+        edit_btn = ctk.CTkButton(
+            actions_frame,
+            text="",
+            image=Icons.get("settings"),
+            width=32,
+            height=32,
+            corner_radius=4,
+            fg_color=COLORS["overlay"],
+            hover_color=COLORS["mauve"],
+            text_color=COLORS["text"],
+            command=lambda pid=project.id: self._on_edit_project(pid)
+        )
+        edit_btn.pack(side="left", padx=2)
+        
+        # Delete button
+        delete_btn = ctk.CTkButton(
+            actions_frame,
+            text="",
+            image=Icons.get("trash"),
+            width=32,
+            height=32,
+            corner_radius=4,
+            fg_color=COLORS["overlay"],
+            hover_color=COLORS["red"],
+            text_color=COLORS["subtext"],
+            command=lambda pid=project.id, pname=project.name: self._on_delete_project(pid, pname)
+        )
+        delete_btn.pack(side="left", padx=2)
+        
+        # Store widgets for updates
+        self.project_rows[project.id] = {
+            "frame": row_frame,
+            "name": name_label,
+            "status_dot": status_dot,
+            "status_text": status_text,
+            "uptime": uptime_label,
+            "play_btn": play_btn,
+            "stop_btn": stop_btn,
+            "project": project
         }
-        return status_map.get(status, "● Unknown")
-
-    def _get_status_color(self, status: ProcessStatus) -> QBrush:
-        """Get color for a status."""
-        color_map = {
-            ProcessStatus.STOPPED: QColor("#6c7086"),    # Muted gray
-            ProcessStatus.STARTING: QColor("#f9e2af"),   # Yellow
-            ProcessStatus.RUNNING: QColor("#a6e3a1"),    # Green
-            ProcessStatus.STOPPING: QColor("#f9e2af"),   # Yellow
-            ProcessStatus.CRASHED: QColor("#f38ba8"),    # Red
+        
+        # Update initial status
+        self._update_row_status(project.id, status)
+    
+    def _update_row_status(self, project_id: int, status: ProcessStatus):
+        """Update the visual status of a project row."""
+        if project_id not in self.project_rows:
+            return
+        
+        row = self.project_rows[project_id]
+        
+        # Colors and text for each status
+        status_config = {
+            ProcessStatus.STOPPED: (COLORS["subtext"], "Stopped", False),
+            ProcessStatus.STARTING: (COLORS["yellow"], "Starting...", False),
+            ProcessStatus.RUNNING: (COLORS["green"], "Running", True),
+            ProcessStatus.STOPPING: (COLORS["yellow"], "Stopping...", False),
+            ProcessStatus.CRASHED: (COLORS["red"], "Crashed", False),
         }
-        return QBrush(color_map.get(status, QColor("#cdd6f4")))
-
-    def _create_actions_widget(self, project_id: int, status: ProcessStatus) -> QWidget:
-        """Create the actions widget for a row."""
-        widget = QWidget()
-        widget.setAttribute(Qt.WA_TranslucentBackground)
-        widget.setStyleSheet("background-color: transparent;")
-        layout = QHBoxLayout(widget)
-        layout.setContentsMargins(4, 4, 4, 4)
-        layout.setSpacing(4)
         
-        is_running = status in (ProcessStatus.RUNNING, ProcessStatus.STARTING)
+        color, text, is_running = status_config.get(status, (COLORS["subtext"], "Unknown", False))
         
-        # Start button with SVG icon
-        start_btn = ActionButton("", "Start")
-        start_btn.setIcon(get_icon(IconNames.PLAY, IconColors.GREEN if not is_running else IconColors.MUTED))
-        start_btn.setEnabled(not is_running)
-        start_btn.setProperty("success", True)
-        start_btn.clicked.connect(lambda checked, pid=project_id: self._on_start_project(pid))
-        layout.addWidget(start_btn)
+        row["status_dot"].configure(text_color=color)
+        row["status_text"].configure(text=text, text_color=color)
         
-        # Stop button with SVG icon
-        stop_btn = ActionButton("", "Stop")
-        stop_btn.setIcon(get_icon(IconNames.STOP, IconColors.RED if is_running else IconColors.MUTED))
-        stop_btn.setEnabled(is_running)
-        stop_btn.setProperty("danger", True)
-        stop_btn.clicked.connect(lambda checked, pid=project_id: self._on_stop_project(pid))
-        layout.addWidget(stop_btn)
-        
-        # Settings/Edit button with SVG icon
-        edit_btn = ActionButton("", "Settings")
-        edit_btn.setIcon(get_icon(IconNames.SETTINGS, IconColors.TEXT))
-        edit_btn.clicked.connect(lambda checked, pid=project_id: self._on_edit_project(pid))
-        layout.addWidget(edit_btn)
-        
-        # Delete button with SVG icon
-        delete_btn = ActionButton("", "Delete")
-        delete_btn.setIcon(get_icon(IconNames.TRASH, IconColors.RED if not is_running else IconColors.MUTED))
-        delete_btn.setProperty("danger", True)
-        delete_btn.setEnabled(not is_running)  # Can't delete while running
-        delete_btn.clicked.connect(lambda checked, pid=project_id: self._on_delete_project(pid))
-        layout.addWidget(delete_btn)
-        
-        return widget
-
+        if not is_running:
+            row["uptime"].configure(text="-")
+    
+    def _on_add_project(self):
+        """Show add project dialog."""
+        from botharbor.ui.dialogs import AddProjectDialog
+        dialog = AddProjectDialog(self.winfo_toplevel())
+        if dialog.get_result():
+            self._refresh_projects()
+    
     def _on_start_project(self, project_id: int):
-        """Start a single project."""
+        """Start a project."""
         project = crud.get_project_by_id(project_id)
         if project:
             self.process_manager.start_project(project)
-
+    
     def _on_stop_project(self, project_id: int):
-        """Stop a single project."""
+        """Stop a project."""
         self.process_manager.stop_project(project_id)
-
-    def _on_view_logs(self, project_id: int):
-        """View logs for a project."""
-        project = crud.get_project_by_id(project_id)
-        if project:
-            self.request_view_logs.emit(project.id, project.name)
-
+    
     def _on_edit_project(self, project_id: int):
         """Edit a project."""
-        self.request_edit_project.emit(project_id)
-
-    def _on_delete_project(self, project_id: int):
-        """Delete a project after confirmation."""
+        from botharbor.ui.dialogs import EditProjectDialog
         project = crud.get_project_by_id(project_id)
-        if not project:
+        if project:
+            dialog = EditProjectDialog(self.winfo_toplevel(), project)
+            if dialog.get_result():
+                self._refresh_projects()
+    
+    def _on_delete_project(self, project_id: int, project_name: str):
+        """Delete a project."""
+        if not messagebox.askyesno(
+            "Confirm Delete",
+            f"Delete project '{project_name}'?\nThis cannot be undone."
+        ):
             return
         
-        reply = QMessageBox.question(
-            self,
-            "Delete Project",
-            f"Are you sure you want to delete '{project.name}'?\n\nThis will not delete the actual project files.",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
-        )
-        
-        if reply == QMessageBox.Yes:
-            crud.delete_project(project_id)
-            self.refresh_projects()
-
+        self.process_manager.stop_project(project_id)
+        crud.delete_project(project_id)
+        self._refresh_projects()
+    
     def _on_start_all(self):
         """Start all stopped projects."""
-        for project in self.projects:
+        projects = crud.get_all_projects()
+        for project in projects:
             status = self.process_manager.get_status(project.id)
-            if status == ProcessStatus.STOPPED or status == ProcessStatus.CRASHED:
-                # Reload from DB to get fresh object
-                fresh_project = crud.get_project_by_id(project.id)
-                if fresh_project:
-                    self.process_manager.start_project(fresh_project)
-
+            if status in (ProcessStatus.STOPPED, ProcessStatus.CRASHED):
+                self.process_manager.start_project(project)
+    
     def _on_stop_all(self):
         """Stop all running projects."""
         self.process_manager.stop_all()
-
-    def _on_row_clicked(self, row: int, col: int):
-        """Handle click on a row - show logs for project."""
-        if row < len(self.projects):
-            project = self.projects[row]
-            # Emit signal to show logs
-            self.request_view_logs.emit(project.id, project.name)
-
-    def _on_row_double_clicked(self, row: int, col: int):
-        """Handle double-click on a row."""
-        if row < len(self.projects):
-            project = self.projects[row]
-            self.project_selected.emit(project.id, project.name)
-
-    @Slot(int, str)
-    def _on_status_changed(self, project_id: int, status_str: str):
-        """Handle status change from ProcessManager."""
-        # Find the row for this project and update status
-        for row, project in enumerate(self.projects):
-            if project.id == project_id:
-                status = ProcessStatus(status_str)
-                
-                # Update status cell with color
-                status_item = QTableWidgetItem(self._get_status_display(status))
-                status_item.setFlags(status_item.flags() & ~Qt.ItemIsEditable)
-                status_item.setForeground(self._get_status_color(status))
-                self.table.setItem(row, self.COL_STATUS, status_item)
-                
-                # Recreate actions widget with updated button states
-                actions_widget = self._create_actions_widget(project_id, status)
-                self.table.setCellWidget(row, self.COL_ACTIONS, actions_widget)
-                break
-
+    
+    def update_project_status(self, project_id: int, status_str: str):
+        """Update a project's status display."""
+        try:
+            status = ProcessStatus(status_str)
+            self._update_row_status(project_id, status)
+        except ValueError:
+            pass
+    
     def _update_uptimes(self):
-        """Update uptime display for all running projects."""
-        for row, project in enumerate(self.projects):
-            uptime = self.process_manager.get_uptime(project.id)
-            uptime_text = format_uptime(uptime) if uptime else "-"
-            
-            uptime_item = self.table.item(row, self.COL_UPTIME)
-            if uptime_item:
-                uptime_item.setText(uptime_text)
-
+        """Update uptime display for running projects."""
+        for project_id, row in self.project_rows.items():
+            status = self.process_manager.get_status(project_id)
+            if status == ProcessStatus.RUNNING:
+                uptime = self.process_manager.get_uptime(project_id)
+                if uptime is not None:
+                    row["uptime"].configure(text=format_uptime(uptime))
+        
+        self.after(1000, self._update_uptimes)
+    
     def get_project_count(self) -> int:
-        """Get the total number of projects."""
-        return len(self.projects)
-
+        """Get total number of projects."""
+        return len(self.project_rows)
+    
     def get_running_count(self) -> int:
-        """Get the number of running projects."""
+        """Get number of running projects."""
         count = 0
-        for project in self.projects:
-            if self.process_manager.get_status(project.id) == ProcessStatus.RUNNING:
+        for project_id in self.project_rows:
+            if self.process_manager.get_status(project_id) == ProcessStatus.RUNNING:
                 count += 1
         return count

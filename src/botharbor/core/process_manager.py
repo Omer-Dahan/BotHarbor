@@ -1,14 +1,12 @@
-"""Process management for bot projects."""
+"""Process management for projects - Callback-based (no Qt dependency)."""
 
 import subprocess
 import threading
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Optional
-
-from PySide6.QtCore import QObject, Signal, QMetaObject, Qt, Q_ARG
+from typing import Optional, Callable
 
 from botharbor.core.log_handler import LogHandler
 from botharbor.database.models import Project
@@ -30,14 +28,10 @@ class ProcessInfo:
     start_time: datetime
     log_handler: LogHandler
     reader_thread: Optional[threading.Thread] = None
-    recent_logs: list = None  # Store last N log lines
+    recent_logs: list = field(default_factory=list)
     
     # Error detection patterns
     ERROR_PATTERNS = ["Traceback", "Error:", "Exception:", "error:", "CRITICAL", "FATAL"]
-    
-    def __post_init__(self):
-        if self.recent_logs is None:
-            self.recent_logs = []
     
     def add_log(self, line: str):
         """Add a log line, keeping only last 150 lines."""
@@ -51,7 +45,6 @@ class ProcessInfo:
     
     def get_error_logs(self) -> str:
         """Get logs starting from the first error indicator."""
-        # Find first line with error pattern
         error_start_idx = None
         for i, line in enumerate(self.recent_logs):
             for pattern in self.ERROR_PATTERNS:
@@ -62,33 +55,28 @@ class ProcessInfo:
                 break
         
         if error_start_idx is not None:
-            # Return from error start to end
-            error_logs = self.recent_logs[error_start_idx:]
-            return "\n".join(error_logs)
+            return "\n".join(self.recent_logs[error_start_idx:])
         else:
-            # No error pattern found, return last 30 lines
             return "\n".join(self.recent_logs[-30:])
 
 
-class ProcessManager(QObject):
+class ProcessManager:
     """
-    Manages subprocess lifecycle for bot projects.
+    Manages subprocess lifecycle for projects.
     
-    Tracks runtime status in-memory (not persisted to database).
-    Emits Qt signals for UI updates.
+    Uses callback functions instead of Qt signals for UI updates.
     """
 
-    # Signals
-    status_changed = Signal(int, str)  # project_id, status (as string)
-    log_received = Signal(int, str)    # project_id, log_line
-    process_exited = Signal(int, int)  # project_id, exit_code
-    crash_detected = Signal(int, str, int, str)  # project_id, project_name, exit_code, recent_logs
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self):
         self._processes: dict[int, ProcessInfo] = {}
-        self._project_names: dict[int, str] = {}  # Store project names for crash notifications
+        self._project_names: dict[int, str] = {}
         self._lock = threading.Lock()
+        
+        # Callbacks (set by UI)
+        self.on_status_changed: Optional[Callable[[int, str], None]] = None
+        self.on_log_received: Optional[Callable[[int, str], None]] = None
+        self.on_process_exited: Optional[Callable[[int, int], None]] = None
+        self.on_crash_detected: Optional[Callable[[int, str, int, str], None]] = None
 
     def get_status(self, project_id: int) -> ProcessStatus:
         """Get the current status of a project."""
@@ -97,15 +85,13 @@ class ProcessManager(QObject):
                 return ProcessStatus.STOPPED
             
             info = self._processes[project_id]
-            # Check if process is still alive
             if info.process.poll() is not None:
-                # Process has exited
                 return ProcessStatus.CRASHED if info.process.returncode != 0 else ProcessStatus.STOPPED
             
             return ProcessStatus.RUNNING
 
     def get_uptime(self, project_id: int) -> Optional[float]:
-        """Get the uptime in seconds for a running project. Returns None if not running."""
+        """Get the uptime in seconds for a running project."""
         with self._lock:
             if project_id not in self._processes:
                 return None
@@ -117,22 +103,16 @@ class ProcessManager(QObject):
             return (datetime.now() - info.start_time).total_seconds()
 
     def start_project(self, project: Project) -> bool:
-        """
-        Start a project subprocess.
-        Returns True if started successfully, False otherwise.
-        """
+        """Start a project subprocess."""
         with self._lock:
-            # Check if already running
             if project.id in self._processes:
                 existing = self._processes[project.id]
                 if existing.process.poll() is None:
-                    return False  # Already running
+                    return False
 
-        # Emit starting status (outside lock)
         self._emit_status(project.id, ProcessStatus.STARTING.value)
 
         try:
-            # Prepare the command
             interpreter = Path(project.interpreter_path)
             script = Path(project.folder_path) / project.entrypoint
             
@@ -144,38 +124,33 @@ class ProcessManager(QObject):
                 self._emit_status(project.id, ProcessStatus.STOPPED.value)
                 return False
 
-            # Create log handler
             log_handler = LogHandler(project.id)
             log_handler.start_logging()
 
-            # Set up environment with UTF-8 encoding
             import os
             env = os.environ.copy()
             env["PYTHONIOENCODING"] = "utf-8"
             env["PYTHONUTF8"] = "1"
 
-            # Start the subprocess with UTF-8 encoding
             process = subprocess.Popen(
-                [str(interpreter), "-u", str(script)],  # -u for unbuffered output
+                [str(interpreter), "-u", str(script)],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 cwd=project.folder_path,
                 text=True,
                 encoding="utf-8",
-                errors="replace",  # Replace chars that can't be decoded
-                bufsize=1,  # Line buffered
+                errors="replace",
+                bufsize=1,
                 env=env,
-                creationflags=subprocess.CREATE_NO_WINDOW  # No console window on Windows
+                creationflags=subprocess.CREATE_NO_WINDOW
             )
 
-            # Create process info
             info = ProcessInfo(
                 process=process,
                 start_time=datetime.now(),
                 log_handler=log_handler
             )
 
-            # Start reader threads
             stdout_thread = threading.Thread(
                 target=self._read_output,
                 args=(project.id, process.stdout, "stdout"),
@@ -189,7 +164,6 @@ class ProcessManager(QObject):
             stdout_thread.start()
             stderr_thread.start()
 
-            # Start monitor thread
             monitor_thread = threading.Thread(
                 target=self._monitor_process,
                 args=(project.id,),
@@ -210,25 +184,23 @@ class ProcessManager(QObject):
             return False
 
     def _emit_status(self, project_id: int, status: str):
-        """Thread-safe status signal emission."""
-        self.status_changed.emit(project_id, status)
+        """Emit status change via callback."""
+        if self.on_status_changed:
+            self.on_status_changed(project_id, status)
 
     def _emit_log(self, project_id: int, line: str):
-        """Thread-safe log signal emission."""
-        self.log_received.emit(project_id, line)
+        """Emit log line via callback."""
+        if self.on_log_received:
+            self.on_log_received(project_id, line)
 
     def stop_project(self, project_id: int) -> bool:
-        """
-        Stop a running project.
-        Returns True if stopped successfully, False if not running.
-        """
+        """Stop a running project."""
         with self._lock:
             if project_id not in self._processes:
                 return False
             
             info = self._processes[project_id]
             if info.process.poll() is not None:
-                # Already stopped
                 return False
 
         self._emit_status(project_id, ProcessStatus.STOPPING.value)
@@ -236,15 +208,12 @@ class ProcessManager(QObject):
         try:
             info.process.terminate()
             
-            # Wait up to 5 seconds for graceful shutdown
             try:
                 info.process.wait(timeout=5)
             except subprocess.TimeoutExpired:
-                # Force kill
                 info.process.kill()
                 info.process.wait()
 
-            # Stop logging
             info.log_handler.stop_logging()
 
             with self._lock:
@@ -266,21 +235,19 @@ class ProcessManager(QObject):
             self.stop_project(project_id)
 
     def _read_output(self, project_id: int, stream, stream_name: str):
-        """Read output from a subprocess stream and emit signals."""
+        """Read output from a subprocess stream."""
         try:
             for line in iter(stream.readline, ""):
                 if not line:
                     break
                 line = line.rstrip("\n\r")
                 
-                # Write to log file and store for crash notifications
                 with self._lock:
                     if project_id in self._processes:
                         info = self._processes[project_id]
                         info.log_handler.write_line(line, stream_name)
                         info.add_log(f"[{stream_name.upper()}] {line}")
                 
-                # Emit signal for UI (thread-safe)
                 self._emit_log(project_id, line)
         except Exception:
             pass
@@ -288,16 +255,14 @@ class ProcessManager(QObject):
             stream.close()
 
     def _monitor_process(self, project_id: int):
-        """Monitor a process and emit exit signal when it terminates."""
+        """Monitor a process and handle exit."""
         with self._lock:
             if project_id not in self._processes:
                 return
             process = self._processes[project_id].process
 
-        # Wait for process to complete
         exit_code = process.wait()
 
-        # Get info for crash notification before cleanup
         recent_logs = ""
         project_name = ""
         with self._lock:
@@ -308,14 +273,14 @@ class ProcessManager(QObject):
                 del self._processes[project_id]
             project_name = self._project_names.get(project_id, f"Project {project_id}")
 
-        # Emit signals (thread-safe)
         status = ProcessStatus.CRASHED if exit_code != 0 else ProcessStatus.STOPPED
         self._emit_status(project_id, status.value)
-        self.process_exited.emit(project_id, exit_code)
         
-        # Emit crash notification if process crashed
-        if exit_code != 0:
-            self.crash_detected.emit(project_id, project_name, exit_code, recent_logs)
+        if self.on_process_exited:
+            self.on_process_exited(project_id, exit_code)
+        
+        if exit_code != 0 and self.on_crash_detected:
+            self.on_crash_detected(project_id, project_name, exit_code, recent_logs)
 
     def get_log_handler(self, project_id: int) -> Optional[LogHandler]:
         """Get the log handler for a project (if running)."""

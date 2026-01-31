@@ -1,13 +1,7 @@
 @echo off
-title BotHarbor
-cd /d "%~dp0"
-
 echo Starting BotHarbor...
-call .venv\Scripts\activate
+cd /d "%~dp0"
+call .venv\Scripts\activate.bat
+cd src
 python -m botharbor.main
-
-if errorlevel 1 (
-    echo.
-    echo An error occurred. Press any key to exit...
-    pause >nul
-)
+pause

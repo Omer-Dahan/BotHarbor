@@ -11,8 +11,9 @@ authors = [
 keywords = ["telegram", "bot", "manager", "desktop"]
 
 dependencies = [
-    "PySide6>=6.6.0",
+    "customtkinter>=5.2.0",
     "SQLAlchemy>=2.0.0",
+    "Pillow>=10.0.0",
 ]
 
 [project.optional-dependencies]
