@@ -1,10 +1,10 @@
-# BotHarbor - Codebase Context
+# H.A.M.A.L - Codebase Context
 
-## Overview
-BotHarbor is a Windows desktop application designed to manage and run multiple Python Telegram bots simultaneously. It provides a GUI to add, edit, control (start/stop), and monitor the logs of these bot processes.
+## Project Overview
+H.A.M.A.L is a Windows desktop application designed to manage and run multiple Python Telegram bots simultaneously. It provides a GUI to add, edit, control (start/stop), and monitor the logs of these bot processes.
 
-**Tech Stack:**
-- **Language:** Python 3.10+
+## Architecture
+The application is built using:e:** Python 3.10+
 - **GUI:** CustomTkinter (Modern Tkinter wrapper)
 - **Database:** SQLite with SQLAlchemy ORM
 - **Process Management:** `subprocess` module with threading for non-blocking I/O
@@ -17,22 +17,22 @@ BotHarbor is a Windows desktop application designed to manage and run multiple P
 - `installer.iss`: Inno Setup script for creating the Windows installer.
 - `build.bat`: Script to compile the application using PyInstaller.
 
-### `src/botharbor` Package
-The main application package is organized into several modules:
+### `src/hamal` Package
+The source code is organized into a main package `hamal`.
 
-#### 1. Core (`src/botharbor/core/`)
+#### 1. Core (`src/hamal/core/`)
 Handles the business logic and backend functionality.
 - **`process_manager.py`**: The heart of the application. It manages the lifecycle of bot processes (start, stop, crash detection). It uses `subprocess.Popen` to run bots and threads to capture `stdout` and `stderr` without freezing the UI. It emits events (callbacks) for status updates and logs.
 - **`config.py`**: Application constants and version info.
 - **`log_handler.py`**: Manages log storage and formatting for running processes.
 
-#### 2. Database (`src/botharbor/database/`)
+#### 2. Database (`src/hamal/database/`)
 Handles data persistence using SQLite.
 - **`models.py`**: Defines the SQLAlchemy `Project` model (id, name, path, entrypoint, interpreter).
 - **`crud.py`**: Functions to Create, Read, Update, and Delete projects in the database.
 - **`database.py`**: Database creation and connection management.
 
-#### 3. UI (`src/botharbor/ui/`)
+#### 3. UI (`src/hamal/ui/`)
 Contains all GUI components built with CustomTkinter.
 - **`main_window.py`**: The entry point for the UI. It assembles the `Dashboard` and `LogPanel`, and binds `ProcessManager` callbacks to UI updates.
 - **`dashboard.py`**: displays the list of projects, their status (Running/Stopped), and uptime. Handles user actions like Start/Stop/Edit.
@@ -40,13 +40,13 @@ Contains all GUI components built with CustomTkinter.
 - **`dialogs.py`**: Popups for adding or editing projects.
 - **`icons.py`**: Manages loading and caching of UI assets.
 
-#### 4. Utils (`src/botharbor/utils/`)
+#### 4. Utils (`src/hamal/utils/`)
 - **`helpers.py`**: Helper functions (e.g., uptime formatting).
 
 ## Key Workflows
 
 ### Application Startup
-1. **Entry Point**: `src/botharbor/main.py`.
+1. **Entry Point**: `src/hamal/main.py`.
 2. **Initialization**:
    - Initializes the local SQLite database.
    - Sets CustomTkinter theme (Dark/Blue).

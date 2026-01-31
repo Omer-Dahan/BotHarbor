@@ -3,10 +3,10 @@
 import customtkinter as ctk
 from tkinter import messagebox
 
-from botharbor.core.config import APP_NAME, APP_VERSION
-from botharbor.core.process_manager import ProcessManager
-from botharbor.ui.dashboard import Dashboard
-from botharbor.ui.log_panel import LogPanel
+from hamal.core.config import APP_NAME, APP_VERSION
+from hamal.core.process_manager import ProcessManager
+from hamal.ui.dashboard import Dashboard
+from hamal.ui.log_panel import LogPanel
 
 
 # Catppuccin Mocha colors
@@ -182,7 +182,7 @@ class MainWindow(ctk.CTk):
         self.help_dropdown = ctk.CTkFrame(self, **dropdown_style)
         ctk.CTkButton(
             self.help_dropdown,
-            text="About BotHarbor",
+            text=f"About {APP_NAME}",
             width=130,
             command=lambda: self._menu_action(self._show_about),
             **item_style
@@ -243,9 +243,9 @@ class MainWindow(ctk.CTk):
     def _show_about(self):
         """Show about dialog."""
         messagebox.showinfo(
-            "About BotHarbor",
-            f"BotHarbor v{APP_VERSION}\n\n"
-            f"A modern script runner for managing\nyour bots and projects.\n\n"
+            f"About {APP_NAME}",
+            f"{APP_NAME} v{APP_VERSION}\n\n"
+            f"Command Center for Python Processes.\n\n"
             f"Built with CustomTkinter"
         )
     

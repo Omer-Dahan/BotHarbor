@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, TextIO
 
-from botharbor.core.config import get_project_logs_dir
+from hamal.core.config import get_project_logs_dir
 
 
 class LogHandler:
@@ -31,7 +31,7 @@ class LogHandler:
         self.log_file = open(self.log_path, "w", encoding="utf-8", buffering=1)  # Line buffered
         
         # Write header
-        self.log_file.write(f"=== BotHarbor Log Started: {datetime.now().isoformat()} ===\n")
+        self.log_file.write(f"=== H.A.M.A.L Log Started: {datetime.now().isoformat()} ===\n")
         self.log_file.write(f"=== Project ID: {self.project_id} ===\n\n")
         
         return self.log_path
@@ -48,7 +48,7 @@ class LogHandler:
     def stop_logging(self):
         """Close the log file."""
         if self.log_file is not None:
-            self.log_file.write(f"\n=== BotHarbor Log Ended: {datetime.now().isoformat()} ===\n")
+            self.log_file.write(f"\n=== H.A.M.A.L Log Ended: {datetime.now().isoformat()} ===\n")
             self.log_file.close()
             self.log_file = None
 

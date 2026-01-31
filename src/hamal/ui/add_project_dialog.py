@@ -10,9 +10,12 @@ from PySide6.QtWidgets import (
     QComboBox, QGroupBox, QMessageBox, QWidget
 )
 
-from botharbor.utils.helpers import detect_python_interpreter, detect_entry_file, get_python_files
-from botharbor.ui.widgets import ActionButton
-from botharbor.ui.icons import get_icon, IconNames, IconColors
+from hamal.core.config import DEFAULT_ENTRY_PATTERNS
+from hamal.database.crud import create_project
+from hamal.database.models import Project
+from hamal.utils.helpers import find_venv_python, IconNames, IconColors
+from hamal.ui.widgets import ActionButton
+from hamal.ui.icons import get_icon
 
 
 class AddProjectDialog(QDialog):

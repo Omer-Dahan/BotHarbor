@@ -8,8 +8,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional, Callable
 
-from botharbor.core.log_handler import LogHandler
-from botharbor.database.models import Project
+from hamal.core.log_handler import LogHandler
+from hamal.database.models import Project
 
 
 class ProcessStatus(Enum):

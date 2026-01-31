@@ -1,12 +1,12 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-BotHarbor PyInstaller spec file.
+HAMAL PyInstaller spec file.
 
 Builds a one-folder distribution for use with Inno Setup installer.
-Output: dist/BotHarbor/BotHarbor.exe (plus dependencies)
+Output: dist/HAMAL/HAMAL.exe (plus dependencies)
 
 To build:
-    pyinstaller --noconfirm --clean botharbor.spec
+    pyinstaller --noconfirm --clean hamal.spec
 
 Resource layout must match resource_path() in helpers.py:
 - ui/styles.qss
@@ -19,18 +19,18 @@ from PyInstaller.utils.hooks import collect_all, collect_submodules
 pyside6_datas, pyside6_binaries, pyside6_hiddenimports = collect_all('PySide6')
 
 # Application data files - must match resource_path() layout
-# Resources go to dist/BotHarbor/ui/... (relative to executable)
+# Resources go to dist/HAMAL/ui/... (relative to executable)
 datas = [
-    ('src/botharbor/ui/styles.qss', 'ui'),
-    ('src/botharbor/ui/assets', 'ui/assets'),
+    ('src/hamal/ui/styles.qss', 'ui'),
+    ('src/hamal/ui/assets', 'ui/assets'),
 ]
 datas += pyside6_datas
 
 # Hidden imports for dynamic imports
-hiddenimports = collect_submodules('botharbor') + pyside6_hiddenimports
+hiddenimports = collect_submodules('hamal') + pyside6_hiddenimports
 
 a = Analysis(
-    ['src/botharbor/main.py'],
+    ['src/hamal/main.py'],
     pathex=['src'],
     binaries=pyside6_binaries,
     datas=datas,
@@ -50,7 +50,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,  # One-folder mode (not onefile)
-    name='BotHarbor',
+    name='HAMAL',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -70,5 +70,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='BotHarbor',
+    name='HAMAL',
 )

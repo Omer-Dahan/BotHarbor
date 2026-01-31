@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 echo ============================================
-echo BotHarbor Build Script
+echo HAMAL Build Script
 echo ============================================
 echo.
 
@@ -40,17 +40,17 @@ if errorlevel 1 (
 
 REM Run PyInstaller
 echo.
-echo Building BotHarbor...
+echo Building HAMAL...
 echo.
-pyinstaller --noconfirm --clean botharbor.spec
+pyinstaller --noconfirm --clean hamal.spec
 
 REM Check result
-if exist "dist\BotHarbor\BotHarbor.exe" (
+if exist "dist\HAMAL\HAMAL.exe" (
     echo.
     echo ============================================
     echo BUILD SUCCESSFUL
     echo ============================================
-    echo Output: dist\BotHarbor\
+    echo Output: dist\HAMAL\
     echo.
     echo Next step: Run Inno Setup with installer.iss
     echo to create the Windows installer.

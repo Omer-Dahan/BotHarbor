@@ -1,6 +1,6 @@
 """Error notification dialog for crash alerts."""
 
-from typing import Optional
+from hamal.ui.icons import Icons
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel,

@@ -1,4 +1,4 @@
-"""BotHarbor - Script Runner Application.
+"""H.A.M.A.L - Script Runner Application.
 
 Modern CustomTkinter-based interface for managing and running scripts.
 """

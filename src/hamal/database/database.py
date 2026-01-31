@@ -3,8 +3,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
-from botharbor.core.config import get_database_path
-from botharbor.database.models import Base
+from hamal.core.config import get_database_path
+from hamal.database.models import Base
 
 
 # Global engine and session factory

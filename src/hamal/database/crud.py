@@ -2,8 +2,8 @@
 
 from typing import Optional
 
-from botharbor.database.database import get_session
-from botharbor.database.models import Project
+from hamal.database.database import get_session
+from hamal.database.models import Project
 
 
 def get_all_projects() -> list[Project]:

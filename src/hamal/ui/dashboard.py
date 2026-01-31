@@ -1,14 +1,16 @@
+
 """Dashboard widget with project table using CustomTkinter."""
 
 import customtkinter as ctk
 from tkinter import messagebox
 from typing import Callable, Optional
 
-from botharbor.database import crud
-from botharbor.database.models import Project
-from botharbor.core.process_manager import ProcessManager, ProcessStatus
-from botharbor.utils.helpers import format_uptime
-from botharbor.ui.icons import Icons
+from hamal.database.crud import get_all_projects, get_project_by_id, delete_project
+from hamal.database.models import Project
+from hamal.core.process_manager import ProcessManager, ProcessStatus
+from hamal.utils.helpers import format_uptime
+from hamal.ui.icons import Icons
+
 
 
 # Catppuccin Mocha colors
@@ -176,7 +178,7 @@ class Dashboard(ctk.CTkFrame):
         self.project_rows.clear()
         
         # Get projects
-        projects = crud.get_all_projects()
+        projects = get_all_projects()
         
         if not projects:
             self.empty_label.grid(row=0, column=0, pady=50)
@@ -358,14 +360,14 @@ class Dashboard(ctk.CTkFrame):
     
     def _on_add_project(self):
         """Show add project dialog."""
-        from botharbor.ui.dialogs import AddProjectDialog
+        from hamal.ui.dialogs import AddProjectDialog
         dialog = AddProjectDialog(self.winfo_toplevel())
         if dialog.get_result():
             self._refresh_projects()
-    
+        
     def _on_start_project(self, project_id: int):
         """Start a project."""
-        project = crud.get_project_by_id(project_id)
+        project = get_project_by_id(project_id)
         if project:
             self.process_manager.start_project(project)
     
@@ -375,8 +377,8 @@ class Dashboard(ctk.CTkFrame):
     
     def _on_edit_project(self, project_id: int):
         """Edit a project."""
-        from botharbor.ui.dialogs import EditProjectDialog
-        project = crud.get_project_by_id(project_id)
+        from hamal.ui.dialogs import EditProjectDialog
+        project = get_project_by_id(project_id)
         if project:
             dialog = EditProjectDialog(self.winfo_toplevel(), project)
             if dialog.get_result():
@@ -391,12 +393,12 @@ class Dashboard(ctk.CTkFrame):
             return
         
         self.process_manager.stop_project(project_id)
-        crud.delete_project(project_id)
+        delete_project(project_id)
         self._refresh_projects()
     
     def _on_start_all(self):
         """Start all stopped projects."""
-        projects = crud.get_all_projects()
+        projects = get_all_projects()
         for project in projects:
             status = self.process_manager.get_status(project.id)
             if status in (ProcessStatus.STOPPED, ProcessStatus.CRASHED):

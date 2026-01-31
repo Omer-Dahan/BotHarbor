@@ -1,11 +1,11 @@
-"""Icon resources for BotHarbor."""
+"""Icon resources from hamal."""
 
 import os
 import sys
 from pathlib import Path
 from PIL import Image
 import customtkinter as ctk
-
+from hamal.utils.helpers import resource_path
 
 def get_icons_dir() -> Path:
     """Get the icons directory path, works both in dev and packaged app."""

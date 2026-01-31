@@ -1,14 +1,14 @@
 [project]
-name = "botharbor"
+name = "hamal"
 version = "0.1.0"
-description = "Windows desktop manager for running multiple Python Telegram bots"
+description = "H.A.M.A.L: Command Center for Python Processes"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
-    {name = "BotHarbor Team"}
+    {name = "HAMAL Team"}
 ]
-keywords = ["telegram", "bot", "manager", "desktop"]
+keywords = ["telegram", "bot", "manager", "desktop", "process", "hamal"]
 
 dependencies = [
     "customtkinter>=5.2.0",

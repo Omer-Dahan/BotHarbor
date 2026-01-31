@@ -1,14 +1,18 @@
-"""Generate PNG icons for BotHarbor using Pillow."""
+"""Generate PNG icons for H.A.M.A.L using Pillow."""
 
 import math
+import sys
+import os
 from pathlib import Path
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 # Icon color - dark so it shows on colored button backgrounds
 ICON_COLOR = "#1e1e2e"  # Dark (matches base theme)
 ICON_COLOR_LIGHT = "#cdd6f4"  # Light for dark background buttons
 
-ICONS_DIR = Path("src/botharbor/ui/assets/icons")
+# Ensure we're running from project root
+# Directory where icons will be saved (relative to project root)
+ICONS_DIR = Path("src/hamal/ui/assets/icons")
 ICONS_DIR.mkdir(parents=True, exist_ok=True)
 
 

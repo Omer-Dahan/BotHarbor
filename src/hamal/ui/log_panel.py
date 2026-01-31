@@ -5,7 +5,7 @@ import customtkinter as ctk
 from pathlib import Path
 from typing import Optional
 
-from botharbor.core.config import get_project_logs_dir
+from hamal.ui.icons import Icons
 
 
 # Catppuccin Mocha colors

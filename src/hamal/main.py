@@ -1,15 +1,15 @@
-"""BotHarbor application entry point with CustomTkinter."""
+"""H.A.M.A.L application entry point with CustomTkinter."""
 
 import sys
 import customtkinter as ctk
 
-from botharbor.database.database import init_database
-from botharbor.core.config import APP_NAME, APP_VERSION
-from botharbor.ui.main_window import MainWindow
+from hamal.database.database import init_database
+from hamal.core.config import APP_NAME, APP_VERSION
+from hamal.ui.main_window import MainWindow
 
 
 def main():
-    """Main entry point for BotHarbor."""
+    """Main entry point for H.A.M.A.L."""
     # Initialize database
     init_database()
     

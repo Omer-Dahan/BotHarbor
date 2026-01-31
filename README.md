@@ -1,47 +1,53 @@
-# BotHarbor
+# H.A.M.A.L
+**Python Bot Management Made Easy**
 
-Windows desktop manager for running multiple Python Telegram bots with strong logging, persistent configuration, and a modern UI.
+**H.A.M.A.L** (Command Center) is a Windows desktop application provided for **Israel's 75th** - "Hamal". It allows you to manage multiple Python scripts (Telegram bots, scrapers, etc.) from a single, modern interface.
 
-## Features
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Omer-Dahan/HAMAL/main/docs/screenshot.png" alt="H.A.M.A.L Screenshot" width="800">
+</p>
 
-- **Project Management**: Add, start, stop, and monitor multiple Python bot projects
-- **Real-time Logging**: Capture and persist stdout/stderr from running bots
-- **Modern Dark UI**: Clean PySide6 interface with dark theme
-- **Persistent Configuration**: SQLite database for project storage
+## ✨ Features
+- 🚀 **Process Management**: Start, stop, and restart scripts with one click.
+- 📊 **Real-time Monitoring**: View uptime and status (Running/Stopped/Crashed) for each bot.
+- 📝 **Log Viewer**: Live log streaming for each process, with automatic file logging.
+- 🎨 **Modern UI**: Beautiful, dark-themed interface built with CustomTkinter.
+- 🛡️ **Isolation**: Runs each script in its own process, ensuring one crash doesn't affect others.
+- 💾 **Persistence**: Remembers your project list and settings.
 
-## Requirements
+## 📦 Installation
+Download the latest installer from the [Releases](https://github.com/Omer-Dahan/HAMAL/releases) page.
 
+## 🛠️ Development Setup
+
+### Prerequisites
 - Python 3.10+
-- Windows 10/11
+- Poetry (recommended) or pip
 
-## Installation
+### Quick Start
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Omer-Dahan/HAMAL.git
+   cd HAMAL
+   ```
+2. Create virtual environment and install dependencies:
+   ```bash
+   python -m venv .venv
+   .venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
 
-```bash
-# Clone or download the repository
-cd BotHarbor
+3. Run the application:
+   ```bash
+   python -m hamal.main
+   ```
 
-# Create virtual environment
-python -m venv .venv
-.venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-## Running
-
-```bash
-# From project root with venv activated
-python -m botharbor.main
-```
-
-## Project Structure
-
-```
-BotHarbor/
-├── src/botharbor/      # Main package
-│   ├── core/           # Process management, logging
-│   ├── database/       # SQLAlchemy models and CRUD
+## 🏗️ Project Structure
+```text
+HAMAL/
+├── src/hamal/      # Main package
+│   ├── core/       # Core logic (ProcessManager, Config)
+│   ├── database/   # Database models and CRUD
 │   ├── ui/             # PySide6 UI components
 │   └── utils/          # Helper utilities
 ├── data/               # Runtime data (logs, database)

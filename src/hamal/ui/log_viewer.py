@@ -9,8 +9,8 @@ from PySide6.QtWidgets import (
     QPushButton, QLabel, QComboBox
 )
 
-from botharbor.core.config import get_project_logs_dir
-from botharbor.utils.helpers import open_folder_in_explorer
+from hamal.core.config import get_project_logs_dir
+from hamal.utils.helpers import open_folder_in_explorer
 
 
 class LogViewer(QWidget):

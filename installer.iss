@@ -1,11 +1,11 @@
-; BotHarbor Inno Setup Installer Script
+; HAMAL Inno Setup Installer Script
 ; Creates a standard Windows installer from PyInstaller one-folder build
 
-#define MyAppName "BotHarbor"
+#define MyAppName "HAMAL"
 #define MyAppVersion "0.1.0"
 #define MyAppPublisher "Omer Dahan"
-#define MyAppURL "https://github.com/Omer-Dahan/BotHarbor"
-#define MyAppExeName "BotHarbor.exe"
+#define MyAppURL "https://github.com/Omer-Dahan/HAMAL"
+#define MyAppExeName "HAMAL.exe"
 
 [Setup]
 ; NOTE: AppId uniquely identifies this application.
@@ -24,7 +24,7 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 ; Output configuration
 OutputDir=installer_output
-OutputBaseFilename=BotHarbor_Setup_{#MyAppVersion}
+OutputBaseFilename=HAMAL_Setup_{#MyAppVersion}
 ; Compression
 Compression=lzma2
 SolidCompression=yes
@@ -33,7 +33,7 @@ WizardStyle=modern
 ; Admin required for Program Files installation
 PrivilegesRequired=admin
 ; Prevent running installer while app is running
-AppMutex=BotHarbor_SingleInstance
+AppMutex=HAMAL_SingleInstance
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -44,7 +44,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 ; Install all files from PyInstaller one-folder build
 ; Source path is relative to this .iss file location
-Source: "dist\BotHarbor\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "dist\HAMAL\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 ; Start Menu shortcuts
@@ -59,7 +59,7 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 
 [UninstallDelete]
 ; Clean up any files created by the app in the install directory
-; NOTE: User data in %LOCALAPPDATA%\BotHarbor is intentionally NOT deleted
+; NOTE: User data in %LOCALAPPDATA%\HAMAL is intentionally NOT deleted
 Type: filesandordirs; Name: "{app}"
 
 [Code]
@@ -69,7 +69,7 @@ begin
   if CurStep = ssPostInstall then
   begin
     // User data location reminder (optional)
-    // MsgBox('BotHarbor stores user data in:' + #13#10 + 
-    //        ExpandConstant('{localappdata}\BotHarbor'), mbInformation, MB_OK);
+    // MsgBox('HAMAL stores user data in:' + #13#10 + 
+    //        ExpandConstant('{localappdata}\HAMAL'), mbInformation, MB_OK);
   end;
 end;

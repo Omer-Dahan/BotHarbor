@@ -5,9 +5,10 @@ from tkinter import filedialog, messagebox
 from pathlib import Path
 from typing import Optional
 
-from botharbor.database import crud
-from botharbor.database.models import Project
-from botharbor.utils.helpers import detect_python_interpreter, detect_entry_file, get_python_files
+from hamal.core.config import DEFAULT_ENTRY_PATTERNS
+from hamal.database.models import Project
+from hamal.database.crud import create_project, update_project
+from hamal.utils.helpers import detect_python_interpreter, detect_entry_file, get_python_files
 
 
 class AddProjectDialog(ctk.CTkToplevel):
@@ -229,7 +230,7 @@ class AddProjectDialog(ctk.CTkToplevel):
         
         # Create project
         try:
-            project = crud.create_project(
+            project = create_project(
                 name=name,
                 folder_path=folder,
                 entrypoint=entry,
@@ -395,7 +396,7 @@ class EditProjectDialog(ctk.CTkToplevel):
         
         # Update project
         try:
-            project = crud.update_project(
+            project = update_project(
                 project_id=self.project.id,
                 name=name,
                 entrypoint=entry,

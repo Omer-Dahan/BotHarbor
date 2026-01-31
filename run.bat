@@ -1,7 +1,7 @@
 @echo off
-echo Starting BotHarbor...
+echo Starting HAMAL...
 cd /d "%~dp0"
 call .venv\Scripts\activate.bat
 cd src
-python -m botharbor.main
+python -m hamal.main
 pause

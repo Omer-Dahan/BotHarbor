@@ -5,14 +5,14 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from botharbor.core.config import DEFAULT_ENTRY_PATTERNS, VENV_PYTHON_PATHS
+from hamal.core.config import DEFAULT_ENTRY_PATTERNS, VENV_PYTHON_PATHS
 
 
 def resource_path(relative_path: str) -> Path:
     """Get absolute path to resource, works for dev and PyInstaller.
     
     In packaged app: resources are relative to executable directory.
-    In development: resources are relative to package root (src/botharbor).
+    In development: resources are relative to package root (src/hamal).
     
     The PyInstaller spec must bundle resources to match this layout.
     """

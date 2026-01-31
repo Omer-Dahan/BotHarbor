@@ -14,7 +14,7 @@ class Base(DeclarativeBase):
 
 class Project(Base):
     """
-    Represents a bot project that can be managed by BotHarbor.
+    Represents a bot project that can be managed by H.A.M.A.L.
     
     Note: Runtime status (running/stopped) is NOT stored here.
     Status is tracked in-memory by ProcessManager.
