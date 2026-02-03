@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 from hamal.ui.icons import Icons
+from hamal.core.config import get_project_logs_dir
 
 
 # Catppuccin Mocha colors

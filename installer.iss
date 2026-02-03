@@ -59,8 +59,9 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 
 [UninstallDelete]
 ; Clean up any files created by the app in the install directory
-; NOTE: User data in %LOCALAPPDATA%\HAMAL is intentionally NOT deleted
 Type: filesandordirs; Name: "{app}"
+; Clean up user data on uninstall
+Type: filesandordirs; Name: "{localappdata}\{#MyAppName}"
 
 [Code]
 // Show message about user data location on first install
@@ -69,7 +70,34 @@ begin
   if CurStep = ssPostInstall then
   begin
     // User data location reminder (optional)
-    // MsgBox('HAMAL stores user data in:' + #13#10 + 
-    //        ExpandConstant('{localappdata}\HAMAL'), mbInformation, MB_OK);
+  end;
+end;
+
+// check for existing data and ask user
+function InitializeSetup(): Boolean;
+var
+  DataDir: String;
+  Res: Integer;
+begin
+  Result := True;
+  DataDir := ExpandConstant('{localappdata}\{#MyAppName}');
+  
+  // Check if data directory exists
+  if DirExists(DataDir) then
+  begin
+    // Ask user if they want to reset
+    Res := MsgBox('Existing data found for ' + '{#MyAppName}' + '.' + #13#10 + #13#10 + 'Do you want to DELETE all existing projects and settings to start fresh?' + #13#10 + #13#10 + '• Click YES to delete everything (Clean Install)' + #13#10 + '• Click NO to keep your existing projects', mbConfirmation, MB_YESNO);
+    
+    // If user chose YES, delete the directory
+    if Res = IDYES then
+    begin
+      try
+        DelTree(DataDir, True, True, True);
+        // Create the directory anew to ensure it's clean and ready
+        CreateDir(DataDir);
+      except
+        // Ignore errors if file is locked (rare during install)
+      end;
+    end;
   end;
 end;

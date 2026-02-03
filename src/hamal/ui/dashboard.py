@@ -43,6 +43,7 @@ class Dashboard(ctk.CTkFrame):
         self.process_manager = process_manager
         self.on_view_logs = on_view_logs
         self.project_rows: dict[int, dict] = {}  # project_id -> row widgets
+        self.active_log_project_id: Optional[int] = None  # Track which project's logs are open
         
         # Ensure icons are loaded
         Icons.load()
@@ -61,7 +62,8 @@ class Dashboard(ctk.CTkFrame):
         # === HEADER ===
         self.header = ctk.CTkFrame(self, fg_color="transparent")
         self.header.grid(row=0, column=0, padx=5, pady=(5, 10), sticky="ew")
-        self.header.grid_columnconfigure(0, weight=1)
+        self.header.grid_columnconfigure(0, weight=0)
+        self.header.grid_columnconfigure(1, weight=1)  # Spacer
         
         # Title
         self.title = ctk.CTkLabel(
@@ -74,7 +76,7 @@ class Dashboard(ctk.CTkFrame):
         
         # Buttons frame
         self.buttons_frame = ctk.CTkFrame(self.header, fg_color="transparent")
-        self.buttons_frame.grid(row=0, column=1, sticky="e")
+        self.buttons_frame.grid(row=0, column=2, sticky="e", padx=15)
         
         # Start All button
         self.start_all_btn = ctk.CTkButton(
@@ -195,9 +197,33 @@ class Dashboard(ctk.CTkFrame):
         status = self.process_manager.get_status(project.id)
         
         # Row frame
-        row_frame = ctk.CTkFrame(self.table_body, fg_color="transparent", height=50)
+        row_frame = ctk.CTkFrame(
+            self.table_body, 
+            fg_color="transparent", 
+            height=50, 
+            cursor="hand2",
+            border_width=1,
+            border_color=COLORS["surface"]
+        )
         row_frame.grid(row=row_index, column=0, sticky="ew", pady=1)
         row_frame.grid_columnconfigure(0, weight=1)
+        
+        # Define click handler with visual feedback
+        def on_click_visual(event=None):
+            # Clear previous active project border
+            if self.active_log_project_id is not None and self.active_log_project_id in self.project_rows:
+                self.project_rows[self.active_log_project_id]["frame"].configure(border_color=COLORS["surface"])
+            
+            # Set this project as active
+            self.active_log_project_id = project.id
+            
+            # Show border
+            row_frame.configure(border_color=COLORS["blue"])
+            # Open logs
+            self.on_view_logs(project.id, project.name)
+        
+        
+        row_frame.bind("<Button-1>", on_click_visual)
         
         # Project name
         name_label = ctk.CTkLabel(
@@ -206,19 +232,21 @@ class Dashboard(ctk.CTkFrame):
             font=ctk.CTkFont(size=13),
             text_color=COLORS["text"],
             width=180,
-            anchor="w"
+            anchor="w",
+            cursor="hand2"
         )
         name_label.grid(row=0, column=0, padx=10, pady=8, sticky="w")
         
         # Status with dot
-        status_frame = ctk.CTkFrame(row_frame, fg_color="transparent", width=100)
+        status_frame = ctk.CTkFrame(row_frame, fg_color="transparent", width=100, cursor="hand2")
         status_frame.grid(row=0, column=1, padx=10, pady=8)
         
         status_dot = ctk.CTkLabel(
             status_frame,
             text="●",
             font=ctk.CTkFont(size=10),
-            width=15
+            width=15,
+            cursor="hand2"
         )
         status_dot.pack(side="left")
         
@@ -226,7 +254,8 @@ class Dashboard(ctk.CTkFrame):
             status_frame,
             text="Stopped",
             font=ctk.CTkFont(size=12),
-            text_color=COLORS["subtext"]
+            text_color=COLORS["subtext"],
+            cursor="hand2"
         )
         status_text.pack(side="left", padx=2)
         
@@ -236,7 +265,8 @@ class Dashboard(ctk.CTkFrame):
             text="-",
             font=ctk.CTkFont(size=12),
             text_color=COLORS["subtext"],
-            width=90
+            width=90,
+            cursor="hand2"
         )
         uptime_label.grid(row=0, column=2, padx=10, pady=8)
         
@@ -319,6 +349,52 @@ class Dashboard(ctk.CTkFrame):
         )
         delete_btn.pack(side="left", padx=2)
         
+        # Bind hover events to all widgets in the row
+        all_widgets = [
+            row_frame, name_label, status_frame, status_dot, status_text, 
+            uptime_label, actions_frame, play_btn, stop_btn, log_btn, 
+            edit_btn, delete_btn
+        ]
+        
+        # Use a localized job variable for this row
+        row_frame.leave_job = None
+        
+        def on_enter(event):
+            # Cancel any pending leave job
+            if row_frame.leave_job:
+                row_frame.after_cancel(row_frame.leave_job)
+                row_frame.leave_job = None
+            
+            # Always show blue border on hover
+            row_frame.configure(border_color=COLORS["blue"])
+        
+        def _do_leave():
+            row_frame.leave_job = None
+            # Only hide border if this project's logs are not currently open
+            if self.active_log_project_id == project.id:
+                row_frame.configure(border_color=COLORS["blue"])
+            else:
+                row_frame.configure(border_color=COLORS["surface"])
+        
+        def on_leave(event):
+            # Schedule clearing the border
+            if row_frame.leave_job:
+                row_frame.after_cancel(row_frame.leave_job)
+            row_frame.leave_job = row_frame.after(50, _do_leave)
+            
+        def on_leave(event):
+            # Schedule clearing the border
+            if row_frame.leave_job:
+                row_frame.after_cancel(row_frame.leave_job)
+            row_frame.leave_job = row_frame.after(50, _do_leave)
+            
+        for widget in all_widgets:
+            widget.bind("<Enter>", on_enter)
+            widget.bind("<Leave>", on_leave)
+            # Bind click only to non-button widgets (first 6 in the list)
+            if widget not in (play_btn, stop_btn, log_btn, edit_btn, delete_btn, actions_frame):
+                widget.bind("<Button-1>", on_click_visual)
+
         # Store widgets for updates
         self.project_rows[project.id] = {
             "frame": row_frame,

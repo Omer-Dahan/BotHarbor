@@ -8,37 +8,35 @@ Output: dist/HAMAL/HAMAL.exe (plus dependencies)
 To build:
     pyinstaller --noconfirm --clean hamal.spec
 
-Resource layout must match resource_path() in helpers.py:
-- ui/styles.qss
-- ui/assets/icons/*.svg
+Resource layout:
+- Assets are mapped to 'assets' at the root of the distribution / bundle.
 """
 
 from PyInstaller.utils.hooks import collect_all, collect_submodules
 
-# Collect PySide6 Qt plugins and dependencies
-pyside6_datas, pyside6_binaries, pyside6_hiddenimports = collect_all('PySide6')
+# Collect CustomTkinter and Pillow if needed (usually auto-detected but good to ensure)
+# No need to collect PySide6 as the app uses CustomTkinter (Tkinter based)
 
-# Application data files - must match resource_path() layout
-# Resources go to dist/HAMAL/ui/... (relative to executable)
+# Application data files
+# Resources go to dist/HAMAL/assets/... (relative to executable root)
+# Matches icons.py expectation: base / "assets" / "icons"
 datas = [
-    ('src/hamal/ui/styles.qss', 'ui'),
-    ('src/hamal/ui/assets', 'ui/assets'),
+    ('src/hamal/ui/assets', 'assets'),
 ]
-datas += pyside6_datas
 
 # Hidden imports for dynamic imports
-hiddenimports = collect_submodules('hamal') + pyside6_hiddenimports
+hiddenimports = collect_submodules('hamal')
 
 a = Analysis(
     ['src/hamal/main.py'],
     pathex=['src'],
-    binaries=pyside6_binaries,
+    binaries=[],
     datas=datas,
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['PyQt6', 'PySide6'], # memory optimization
     noarchive=False,
     optimize=0,
 )
@@ -59,7 +57,6 @@ exe = EXE(
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
-    codesign_identity=None,
     entitlements_file=None,
 )
 

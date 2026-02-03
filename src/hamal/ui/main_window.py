@@ -35,7 +35,7 @@ class MainWindow(ctk.CTk):
         # Window configuration
         self.title(f"{APP_NAME}")
         self.geometry("1100x650")
-        self.minsize(900, 500)
+        self.minsize(500, 500)
         
         # Set dark appearance
         self.configure(fg_color=COLORS["base"])
@@ -74,6 +74,13 @@ class MainWindow(ctk.CTk):
         # Active dropdown tracking
         self._active_menu = None
         
+        # Container frame for menu buttons (grouped on the left)
+        self.menu_buttons_container = ctk.CTkFrame(
+            self.custom_menu_bar,
+            fg_color="transparent"
+        )
+        self.menu_buttons_container.pack(side="left", padx=0)
+        
         # Menu button style
         menu_btn_style = {
             "fg_color": "transparent",
@@ -87,7 +94,7 @@ class MainWindow(ctk.CTk):
         
         # File menu button
         self.file_btn = ctk.CTkButton(
-            self.custom_menu_bar,
+            self.menu_buttons_container,
             text="File",
             width=50,
             command=lambda: self._toggle_dropdown("file"),
@@ -97,7 +104,7 @@ class MainWindow(ctk.CTk):
         
         # Projects menu button
         self.projects_btn = ctk.CTkButton(
-            self.custom_menu_bar,
+            self.menu_buttons_container,
             text="Projects",
             width=70,
             command=lambda: self._toggle_dropdown("projects"),
@@ -107,7 +114,7 @@ class MainWindow(ctk.CTk):
         
         # Help menu button
         self.help_btn = ctk.CTkButton(
-            self.custom_menu_bar,
+            self.menu_buttons_container,
             text="Help",
             width=50,
             command=lambda: self._toggle_dropdown("help"),
@@ -208,13 +215,9 @@ class MainWindow(ctk.CTk):
         # Show the clicked dropdown
         dropdown, btn = self._dropdowns[menu_name]
         
-        # Calculate position relative to the window
-        btn.update_idletasks()
-        x = btn.winfo_x()
-        y = self.custom_menu_bar.winfo_height()
         
-        dropdown.place(x=x, y=y)
-        dropdown.lift()
+        dropdown.place(in_=btn, relx=0, rely=1, x=0, y=0)
+        dropdown.tkraise()  # Bring to front above all other widgets
         self._active_menu = menu_name
     
     def _hide_all_dropdowns(self):
@@ -241,20 +244,40 @@ class MainWindow(ctk.CTk):
         self.dashboard._on_stop_all()
     
     def _show_about(self):
-        """Show about dialog."""
-        messagebox.showinfo(
-            f"About {APP_NAME}",
-            f"{APP_NAME} v{APP_VERSION}\n\n"
-            f"Command Center for Python Processes.\n\n"
-            f"Built with CustomTkinter"
-        )
+        """Show about dialog with credits and quick guide."""
+        about_text = f"""{APP_NAME} v{APP_VERSION}
+Hybrid Automated Management And Logging
+
+━━━━━━━━━━━━━━━━━
+📖 QUICK START
+
+1. Add Project → Select your script folder
+2. Choose Python interpreter & entry point
+3. Click Start to run
+4. Monitor logs in real-time
+
+━━━━━━━━━━━━━━━━━
+✨ FEATURES
+
+• Process control & monitoring
+• Live log streaming
+• Auto-restart on crash
+• Multi-script management
+
+━━━━━━━━━━━━━━━━━
+Made with ❤️ by Omer Dahan
+Built with CustomTkinter
+License: MIT"""
+        
+        messagebox.showinfo(f"About {APP_NAME}", about_text)
     
     def _setup_ui(self):
         """Setup the main UI layout."""
-        # Configure grid
-        self.grid_columnconfigure(0, weight=3)  # Dashboard takes more space
-        self.grid_columnconfigure(1, weight=2)  # Log panel
-        self.grid_rowconfigure(1, weight=1)
+        # Initialize layout state
+        self._layout_mode = "desktop"  # or "mobile"
+        
+        # Configure initial grid
+        self._configure_grid_desktop()
         
         # Dashboard (left side)
         self.dashboard = Dashboard(
@@ -262,15 +285,13 @@ class MainWindow(ctk.CTk):
             process_manager=self.process_manager,
             on_view_logs=self._show_logs
         )
-        self.dashboard.grid(row=1, column=0, padx=(10, 5), pady=10, sticky="nsew")
+        # Grid position will be set by _update_layout
         
-        # Log panel (right side)
+        # Log panel (right side or bottom)
         self.log_panel = LogPanel(self)
-        self.log_panel.grid(row=1, column=1, padx=(5, 10), pady=10, sticky="nsew")
         
         # Status bar at bottom
         self.status_bar = ctk.CTkFrame(self, fg_color=COLORS["mantle"], height=25, corner_radius=0)
-        self.status_bar.grid(row=2, column=0, columnspan=2, sticky="ew")
         
         self.status_label = ctk.CTkLabel(
             self.status_bar,
@@ -280,6 +301,83 @@ class MainWindow(ctk.CTk):
             anchor="w"
         )
         self.status_label.pack(side="left", padx=10, pady=3)
+        
+        # Initial layout update
+        self._update_layout()
+        
+        # Bind resize event
+        self.bind("<Configure>", self._on_resize)
+        
+    def _configure_grid_desktop(self):
+        """Configure grid for desktop layout (side-by-side)."""
+        # Reset mobile settings
+        self.grid_rowconfigure(3, weight=0)
+        self.grid_columnconfigure(0, weight=3, uniform="group1")
+        self.grid_columnconfigure(1, weight=2, uniform="group1")
+        
+        # Set desktop rows
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=0)
+        
+    def _configure_grid_mobile(self):
+        """Configure grid for mobile layout (stacked)."""
+        # Reset desktop settings (remove from uniform group)
+        self.grid_columnconfigure(0, weight=1, uniform="")
+        self.grid_columnconfigure(1, weight=0, uniform="")
+        
+        # Set mobile rows
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=1)
+        self.grid_rowconfigure(3, weight=0)
+        
+    def _on_resize(self, event):
+        """Handle window resize to switch layouts."""
+        if event.widget != self:
+            return
+            
+        width = self.winfo_width()
+        height = self.winfo_height()
+        
+        # Use aspect ratio instead of fixed pixels (works with any DPI scaling)
+        # If window is very narrow (aspect ratio < 1.3), switch to stacked layout
+        aspect_ratio = width / height if height > 0 else 999
+        
+        new_mode = "desktop" if aspect_ratio >= 1.3 else "mobile"
+        
+        if new_mode != self._layout_mode:
+            self._layout_mode = new_mode
+            self._update_layout()
+            
+    def _update_layout(self):
+        """Update widget positions based on current layout mode."""
+        # Clear current grid
+        self.dashboard.grid_forget()
+        self.log_panel.grid_forget()
+        self.status_bar.grid_forget()
+        
+        if self._layout_mode == "desktop":
+            self._configure_grid_desktop()
+            
+            # Dashboard: Row 1, Col 0
+            self.dashboard.grid(row=1, column=0, padx=(10, 5), pady=10, sticky="nsew")
+            
+            # Logs: Row 1, Col 1
+            self.log_panel.grid(row=1, column=1, padx=(5, 10), pady=10, sticky="nsew")
+            
+            # Status bar: Row 2, Span 2
+            self.status_bar.grid(row=2, column=0, columnspan=2, sticky="ew")
+            
+        else:  # mobile/stacked
+            self._configure_grid_mobile()
+            
+            # Dashboard: Row 1, Col 0, Span 2 (full width)
+            self.dashboard.grid(row=1, column=0, columnspan=2, padx=10, pady=(10, 5), sticky="nsew")
+            
+            # Logs: Row 2, Col 0, Span 2 (full width)
+            self.log_panel.grid(row=2, column=0, columnspan=2, padx=10, pady=(5, 10), sticky="nsew")
+            
+            # Status bar: Row 3, Span 2
+            self.status_bar.grid(row=3, column=0, columnspan=2, sticky="ew")
     
     def _on_status_changed(self, project_id: int, status: str):
         """Handle project status change."""
