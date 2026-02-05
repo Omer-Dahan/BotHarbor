@@ -1,5 +1,6 @@
 """Process management for projects - Callback-based (no Qt dependency)."""
 
+import logging
 import subprocess
 import threading
 from dataclasses import dataclass, field
@@ -104,10 +105,22 @@ class ProcessManager:
 
     def start_project(self, project: Project) -> bool:
         """Start a project subprocess."""
+        logger = logging.getLogger(__name__)
+        
+        # === DEBUG LOGGING ===
+        logger.info("="*50)
+        logger.info(f"[START_PROJECT] Attempting to start: {project.name}")
+        logger.info(f"  Project ID: {project.id}")
+        logger.info(f"  folder_path: {project.folder_path}")
+        logger.info(f"  entrypoint: {project.entrypoint}")
+        logger.info(f"  interpreter_path: {project.interpreter_path}")
+        # === END DEBUG ===
+        
         with self._lock:
             if project.id in self._processes:
                 existing = self._processes[project.id]
                 if existing.process.poll() is None:
+                    logger.warning(f"  [SKIP] Process already running for {project.name}")
                     return False
 
         self._emit_status(project.id, ProcessStatus.STARTING.value)
@@ -116,11 +129,17 @@ class ProcessManager:
             interpreter = Path(project.interpreter_path)
             script = Path(project.folder_path) / project.entrypoint
             
+            logger.info(f"  Full script path: {script}")
+            logger.info(f"  Interpreter exists: {interpreter.exists()}")
+            logger.info(f"  Script exists: {script.exists()}")
+            
             if not interpreter.exists():
+                logger.error(f"  [FAIL] Interpreter not found: {interpreter}")
                 self._emit_status(project.id, ProcessStatus.STOPPED.value)
                 return False
             
             if not script.exists():
+                logger.error(f"  [FAIL] Script not found: {script}")
                 self._emit_status(project.id, ProcessStatus.STOPPED.value)
                 return False
 
@@ -136,7 +155,7 @@ class ProcessManager:
                 [str(interpreter), "-u", str(script)],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                cwd=project.folder_path,
+                cwd=str(script.parent),  # Run script in its own directory
                 text=True,
                 encoding="utf-8",
                 errors="replace",

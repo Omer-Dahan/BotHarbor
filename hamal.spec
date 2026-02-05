@@ -36,7 +36,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['PyQt6', 'PySide6'], # memory optimization
+    excludes=['PyQt6'], # CustomTkinter uses Tkinter, but we use PySide6 for dialogs
     noarchive=False,
     optimize=0,
 )

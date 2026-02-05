@@ -1,5 +1,6 @@
 """Add Project dialog for creating new projects."""
 
+import logging
 from pathlib import Path
 from typing import Optional
 
@@ -202,38 +203,47 @@ class AddProjectDialog(QDialog):
 
     def _set_folder(self, folder: str):
         """Set the selected folder and auto-detect settings."""
+        logger = logging.getLogger(__name__)
+        
         self.folder_path = folder
         self.folder_input.setText(folder)
         
-        # Auto-detect project name from folder
+        # Auto-detect project name from folder (root folder name)
         folder_name = Path(folder).name
         self.name_input.setText(folder_name)
+        logger.info(f"[SET_FOLDER] Setting project name to: {folder_name}")
         
-        # Populate entry file dropdown
+        # Populate entry file dropdown with all script files
         self.entry_combo.clear()
         py_files = get_python_files(folder)
         self.entry_combo.addItems(py_files)
+        logger.info(f"[SET_FOLDER] Found {len(py_files)} script files")
         
         # Auto-select likely entry file
         detected = detect_entry_file(folder)
         info_messages = []
         
         if detected:
+            logger.info(f"[SET_FOLDER] Detected entry file: {detected}")
             index = self.entry_combo.findText(detected)
             if index >= 0:
                 self.entry_combo.setCurrentIndex(index)
-                info_messages.append(f"Auto-detected entry file: {detected}")
+            else:
+                # Entry file not in list, add it and select it
+                self.entry_combo.addItem(detected)
+                self.entry_combo.setCurrentText(detected)
+            info_messages.append(f"Found: {detected}")
         elif py_files:
-            info_messages.append("No common entry file found. Please select or browse for one.")
+            info_messages.append("No entry file detected - please select one")
         else:
-            info_messages.append("No Python files found in this folder.")
+            info_messages.append("No script files found")
         
         # Detect interpreter
         interpreter = detect_python_interpreter(folder)
         self.interpreter_input.setText(interpreter)
         
-        if ".venv" in interpreter or "venv" in interpreter:
-            info_messages.append("Project venv detected")
+        if interpreter and (".venv" in interpreter or "venv" in interpreter):
+            info_messages.append("Found virtual environment")
         
         self.info_label.setText(" | ".join(info_messages))
         
@@ -303,9 +313,19 @@ class AddProjectDialog(QDialog):
         if self.result() != QDialog.Accepted:
             return None
         
-        return {
+        result = {
             "name": self.project_name,
             "folder_path": self.folder_path,
             "entrypoint": self.entry_file,
             "interpreter_path": self.interpreter,
         }
+        
+        # Log new project details
+        logger = logging.getLogger(__name__)
+        logger.info(f"[ADD_PROJECT] Adding project: {result['name']}")
+        logger.info(f"  Folder: {result['folder_path']}")
+        logger.info(f"  Entrypoint: {result['entrypoint']}")
+        logger.info(f"  Interpreter: {result['interpreter_path']}")
+        
+        return result
+
