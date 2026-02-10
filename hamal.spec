@@ -58,6 +58,7 @@ exe = EXE(
     argv_emulation=False,
     target_arch=None,
     entitlements_file=None,
+    icon='src/hamal/ui/assets/icons/icon.ico',
 )
 
 coll = COLLECT(

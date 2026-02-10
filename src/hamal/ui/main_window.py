@@ -7,6 +7,8 @@ from hamal.core.config import APP_NAME, APP_VERSION
 from hamal.core.process_manager import ProcessManager
 from hamal.ui.dashboard import Dashboard
 from hamal.ui.log_panel import LogPanel
+from hamal.ui.icons import get_icons_dir
+from hamal.ui.about_dialog import AboutDialog
 
 
 # Catppuccin Mocha colors
@@ -36,6 +38,29 @@ class MainWindow(ctk.CTk):
         self.title(f"{APP_NAME}")
         self.geometry("1100x650")
         self.minsize(500, 500)
+        
+        # Set window icon
+        try:
+            icons_dir = get_icons_dir()
+            icon_ico = icons_dir / "icon.ico"
+            
+            # Windows: iconbitmap is preferred for title bar
+            if icon_ico.exists():
+                self.iconbitmap(icon_ico)
+            
+            # Fallback / Cross-platform support with PNGs
+            from PIL import Image, ImageTk
+            icon_images = []
+            for size in ["256", "48", "32", "16"]:
+                path = icons_dir / f"{size}.png"
+                if path.exists():
+                    icon_images.append(ImageTk.PhotoImage(Image.open(path)))
+            
+            if icon_images:
+                self.iconphoto(True, *icon_images)
+                    
+        except Exception as e:
+            print(f"Failed to set window icon: {e}")
         
         # Set dark appearance
         self.configure(fg_color=COLORS["base"])
@@ -245,31 +270,7 @@ class MainWindow(ctk.CTk):
     
     def _show_about(self):
         """Show about dialog with credits and quick guide."""
-        about_text = f"""{APP_NAME} v{APP_VERSION}
-Hybrid Automated Management And Logging
-
-━━━━━━━━━━━━━━━━━
-📖 QUICK START
-
-1. Add Project → Select your script folder
-2. Choose Python interpreter & entry point
-3. Click Start to run
-4. Monitor logs in real-time
-
-━━━━━━━━━━━━━━━━━
-✨ FEATURES
-
-• Process control & monitoring
-• Live log streaming
-• Auto-restart on crash
-• Multi-script management
-
-━━━━━━━━━━━━━━━━━
-Made with ❤️ by Omer Dahan
-Built with CustomTkinter
-License: MIT"""
-        
-        messagebox.showinfo(f"About {APP_NAME}", about_text)
+        AboutDialog(self)
     
     def _setup_ui(self):
         """Setup the main UI layout."""

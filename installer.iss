@@ -34,6 +34,7 @@ WizardStyle=modern
 PrivilegesRequired=admin
 ; Prevent running installer while app is running
 AppMutex=HAMAL_SingleInstance
+SetupIconFile=src\hamal\ui\assets\icons\icon.ico
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -51,7 +52,7 @@ Source: "dist\HAMAL\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs cr
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
 ; Desktop shortcut (optional, unchecked by default)
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; IconFilename: "{app}\assets\icons\icon.ico"
 
 [Run]
 ; Option to launch after installation

@@ -37,3 +37,4 @@ installer_output/
 # Data / Database
 data/
 *.db
+src/hamal/ui/assets/icons/generate_ico.py
