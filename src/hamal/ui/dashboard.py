@@ -95,24 +95,7 @@ class Dashboard(ctk.CTkFrame):
         )
         self.start_all_btn.pack(side="left", padx=3)
         
-        # Stop All button
-        self.stop_all_btn = ctk.CTkButton(
-            self.buttons_frame,
-            text="Stop All",
-            image=Icons.get("stop"),
-            font=ctk.CTkFont(size=12, weight="bold"),
-            width=110,
-            height=32,
-            corner_radius=6,
-            fg_color=COLORS["red"],
-            hover_color="#e06080",
-            text_color="#1e1e2e",
-            compound="left",
-            command=self._on_stop_all
-        )
-        self.stop_all_btn.pack(side="left", padx=3)
-        
-        # Add Project button
+        # Add Project button (blue - middle, matching logo)
         self.add_btn = ctk.CTkButton(
             self.buttons_frame,
             text="Add Project",
@@ -128,6 +111,23 @@ class Dashboard(ctk.CTkFrame):
             command=self._on_add_project
         )
         self.add_btn.pack(side="left", padx=3)
+        
+        # Stop All button (red - right, matching logo)
+        self.stop_all_btn = ctk.CTkButton(
+            self.buttons_frame,
+            text="Stop All",
+            image=Icons.get("stop"),
+            font=ctk.CTkFont(size=12, weight="bold"),
+            width=110,
+            height=32,
+            corner_radius=6,
+            fg_color=COLORS["red"],
+            hover_color="#e06080",
+            text_color="#1e1e2e",
+            compound="left",
+            command=self._on_stop_all
+        )
+        self.stop_all_btn.pack(side="left", padx=3)
         
         # === TABLE CONTAINER ===
         self.table_container = ctk.CTkFrame(self, fg_color=COLORS["surface"], corner_radius=8)

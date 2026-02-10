@@ -155,7 +155,7 @@ class ProcessManager:
                 [str(interpreter), "-u", str(script)],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                cwd=str(script.parent),  # Run script in its own directory
+                cwd=str(Path(project.folder_path)),  # Run from project root directory
                 text=True,
                 encoding="utf-8",
                 errors="replace",
