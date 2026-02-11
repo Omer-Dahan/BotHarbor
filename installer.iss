@@ -2,7 +2,7 @@
 ; Creates a standard Windows installer from PyInstaller one-folder build
 
 #define MyAppName "HAMAL"
-#define MyAppVersion "0.1.1"
+#define MyAppVersion "0.1.2"
 #define MyAppPublisher "Omer Dahan"
 #define MyAppURL "https://github.com/Omer-Dahan/H.A.M.A.L"
 #define MyAppExeName "HAMAL.exe"
@@ -40,19 +40,21 @@ SetupIconFile=src\hamal\ui\assets\icons\icon.ico
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
+; Copy the icon file specifically to the root for reliable shortcut creation
+Source: "src\hamal\ui\assets\icons\icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 ; Install all files from PyInstaller one-folder build
 ; Source path is relative to this .iss file location
 Source: "dist\HAMAL\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-; Start Menu shortcuts
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
+; Start Menu shortcuts (now with icon)
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; IconFilename: "{app}\icon.ico"
 Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
-; Desktop shortcut (optional, unchecked by default)
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; IconFilename: "{app}\assets\icons\icon.ico"
+; Desktop shortcut (checked by default)
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; WorkingDir: "{app}"; IconFilename: "{app}\icon.ico"
 
 [Run]
 ; Option to launch after installation

@@ -10,6 +10,7 @@ from hamal.database.models import Project
 from hamal.core.process_manager import ProcessManager, ProcessStatus
 from hamal.utils.helpers import format_uptime
 from hamal.ui.icons import Icons
+from hamal.ui.animated_button import create_depth_button
 
 
 
@@ -78,54 +79,44 @@ class Dashboard(ctk.CTkFrame):
         self.buttons_frame = ctk.CTkFrame(self.header, fg_color="transparent")
         self.buttons_frame.grid(row=0, column=2, sticky="e", padx=15)
         
-        # Start All button
-        self.start_all_btn = ctk.CTkButton(
+        
+        # Start All button (green - left, matching logo)
+        # Start All button (green - left, matching logo)
+        self.start_all_btn = create_depth_button(
             self.buttons_frame,
             text="Start All",
+            base_color=COLORS["green"],
+            hover_color="#b8efb3",  # Lighter green for hover
             image=Icons.get("play"),
-            font=ctk.CTkFont(size=12, weight="bold"),
+            command=self._on_start_all,
             width=110,
-            height=32,
-            corner_radius=6,
-            fg_color=COLORS["green"],
-            hover_color="#86c381",
-            text_color="#1e1e2e",
-            compound="left",
-            command=self._on_start_all
+            bg_color=COLORS["base"]  # Match window background to fix corner artifacts
         )
         self.start_all_btn.pack(side="left", padx=3)
         
         # Add Project button (blue - middle, matching logo)
-        self.add_btn = ctk.CTkButton(
+        self.add_btn = create_depth_button(
             self.buttons_frame,
             text="Add Project",
+            base_color=COLORS["blue"],
+            hover_color="#9bc4ff",  # Lighter blue for hover
             image=Icons.get("plus"),
-            font=ctk.CTkFont(size=12, weight="bold"),
+            command=self._on_add_project,
             width=130,
-            height=32,
-            corner_radius=6,
-            fg_color=COLORS["blue"],
-            hover_color="#6994d8",
-            text_color="#1e1e2e",
-            compound="left",
-            command=self._on_add_project
+            bg_color=COLORS["base"]
         )
         self.add_btn.pack(side="left", padx=3)
         
         # Stop All button (red - right, matching logo)
-        self.stop_all_btn = ctk.CTkButton(
+        self.stop_all_btn = create_depth_button(
             self.buttons_frame,
             text="Stop All",
+            base_color=COLORS["red"],
+            hover_color="#ff9fb8",  # Lighter red for hover
             image=Icons.get("stop"),
-            font=ctk.CTkFont(size=12, weight="bold"),
+            command=self._on_stop_all,
             width=110,
-            height=32,
-            corner_radius=6,
-            fg_color=COLORS["red"],
-            hover_color="#e06080",
-            text_color="#1e1e2e",
-            compound="left",
-            command=self._on_stop_all
+            bg_color=COLORS["base"]
         )
         self.stop_all_btn.pack(side="left", padx=3)
         

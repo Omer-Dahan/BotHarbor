@@ -41,7 +41,7 @@ def get_project_logs_dir(project_id: int) -> Path:
 
 # Application constants
 APP_NAME = "H.A.M.A.L"
-APP_VERSION = "0.1.1"
+APP_VERSION = "0.1.2"
 
 # Default entry file patterns to look for when adding a project
 DEFAULT_ENTRY_PATTERNS = [
