@@ -1,7 +1,12 @@
-# H.A.M.A.L
-**H**ybrid **A**utomated **M**anagement **A**nd **L**ogging
-
 <div align="center">
+
+<img src="src/hamal/ui/assets/icons/256.png" alt="H.A.M.A.L Logo" width="150">
+
+<br>
+
+# H.A.M.A.L
+
+**H**ybrid **A**utomated **M**anagement **A**nd **L**ogging
 
 ![Version](https://img.shields.io/badge/version-0.1.2-blue?style=for-the-badge)
 ![Python](https://img.shields.io/badge/python-3.10+-green?style=for-the-badge&logo=python)
