@@ -1,6 +1,5 @@
 """Log handling and persistence for project output."""
 
-import os
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, TextIO
@@ -22,25 +21,25 @@ class LogHandler:
     def start_logging(self) -> Path:
         """Start a new log file for this run. Returns the log file path."""
         logs_dir = get_project_logs_dir(self.project_id)
-        
+
         # Generate timestamp-based filename
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         self.log_path = logs_dir / f"{timestamp}.log"
-        
+
         # Open file for writing
-        self.log_file = open(self.log_path, "w", encoding="utf-8", buffering=1)  # Line buffered
-        
+        self.log_file = open(self.log_path, "w", encoding="utf-8", buffering=1)  # pylint: disable=consider-using-with
+
         # Write header
         self.log_file.write(f"=== H.A.M.A.L Log Started: {datetime.now().isoformat()} ===\n")
         self.log_file.write(f"=== Project ID: {self.project_id} ===\n\n")
-        
+
         return self.log_path
 
     def write_line(self, line: str, stream: str = "stdout"):
         """Write a line to the log file."""
         if self.log_file is None:
             return
-        
+
         timestamp = datetime.now().strftime("%H:%M:%S")
         prefix = "[ERR]" if stream == "stderr" else "[OUT]"
         self.log_file.write(f"{timestamp} {prefix} {line}\n")

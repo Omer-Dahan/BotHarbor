@@ -8,30 +8,30 @@ from hamal.database.models import Base
 
 
 # Global engine and session factory
-_engine = None
-_SessionLocal = None
+ENGINE = None
+SESSION_LOCAL = None
 
 
 def get_engine():
     """Get or create the SQLAlchemy engine."""
-    global _engine
-    if _engine is None:
+    global ENGINE  # pylint: disable=global-statement
+    if ENGINE is None:
         db_path = get_database_path()
-        _engine = create_engine(
+        ENGINE = create_engine(
             f"sqlite:///{db_path}",
             echo=False,  # Set to True for SQL debugging
             connect_args={"check_same_thread": False}  # Required for SQLite with threads
         )
-    return _engine
+    return ENGINE
 
 
 def get_session_factory() -> sessionmaker:
     """Get or create the session factory."""
-    global _SessionLocal
-    if _SessionLocal is None:
+    global SESSION_LOCAL  # pylint: disable=global-statement
+    if SESSION_LOCAL is None:
         engine = get_engine()
-        _SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
-    return _SessionLocal
+        SESSION_LOCAL = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+    return SESSION_LOCAL
 
 
 def init_database():

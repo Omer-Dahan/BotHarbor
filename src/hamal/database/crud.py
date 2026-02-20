@@ -60,7 +60,7 @@ def update_project(
         project = session.query(Project).filter(Project.id == project_id).first()
         if not project:
             return None
-        
+
         if name is not None:
             project.name = name
         if folder_path is not None:
@@ -69,7 +69,7 @@ def update_project(
             project.entrypoint = entrypoint
         if interpreter_path is not None:
             project.interpreter_path = interpreter_path
-        
+
         session.commit()
         session.refresh(project)
         return project
@@ -84,7 +84,7 @@ def delete_project(project_id: int) -> bool:
         project = session.query(Project).filter(Project.id == project_id).first()
         if not project:
             return False
-        
+
         session.delete(project)
         session.commit()
         return True

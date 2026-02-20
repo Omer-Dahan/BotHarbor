@@ -44,6 +44,7 @@ APP_NAME = "H.A.M.A.L"
 APP_VERSION = "0.1.2"
 
 # Default entry file patterns to look for when adding a project
+# pylint: disable=duplicate-code
 DEFAULT_ENTRY_PATTERNS = [
     "main.py",
     "bot.py",

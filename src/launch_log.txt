@@ -1,0 +1,78 @@
+Traceback (most recent call last):
+  File "C:\Users\omer\Desktop\programming\H.A.M.A.L\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\omer\Desktop\programming\H.A.M.A.L\.venv\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+sqlite3.OperationalError: no such column: projects.auto_restart
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\omer\Desktop\programming\H.A.M.A.L\src\hamal\__main__.py", line 6, in <module>
+    main()
+  File "C:\Users\omer\Desktop\programming\H.A.M.A.L\src\hamal\main.py", line 77, in main
+    app = MainWindow()
+          ^^^^^^^^^^^^
+  File "C:\Users\omer\Desktop\programming\H.A.M.A.L\src\hamal\ui\main_window.py", line 86, in __init__
+    self._setup_ui()
+  File "C:\Users\omer\Desktop\programming\H.A.M.A.L\src\hamal\ui\main_window.py", line 307, in _setup_ui
+    self.dashboard = Dashboard(
+                     ^^^^^^^^^^
+  File "C:\Users\omer\Desktop\programming\H.A.M.A.L\src\hamal\ui\dashboard.py", line 53, in __init__
+    self._refresh_projects()
+  File "C:\Users\omer\Desktop\programming\H.A.M.A.L\src\hamal\ui\dashboard.py", line 174, in _refresh_projects
+    projects = get_all_projects()
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\omer\Desktop\programming\H.A.M.A.L\src\hamal\database\crud.py", line 13, in get_all_projects
+    return session.query(Project).order_by(Project.name).all()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\omer\Desktop\programming\H.A.M.A.L\.venv\Lib\site-packages\sqlalchemy\orm\query.py", line 2704, in all
+    return self._iter().all()  # type: ignore
+           ^^^^^^^^^^^^
+  File "C:\Users\omer\Desktop\programming\H.A.M.A.L\.venv\Lib\site-packages\sqlalchemy\orm\query.py", line 2857, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\omer\Desktop\programming\H.A.M.A.L\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2351, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\omer\Desktop\programming\H.A.M.A.L\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\omer\Desktop\programming\H.A.M.A.L\.venv\Lib\site-packages\sqlalchemy\orm\context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+             ^^^^^^^^^^^^^
+  File "C:\Users\omer\Desktop\programming\H.A.M.A.L\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "C:\Users\omer\Desktop\programming\H.A.M.A.L\.venv\Lib\site-packages\sqlalchemy\sql\elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\omer\Desktop\programming\H.A.M.A.L\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\omer\Desktop\programming\H.A.M.A.L\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\omer\Desktop\programming\H.A.M.A.L\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Users\omer\Desktop\programming\H.A.M.A.L\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\omer\Desktop\programming\H.A.M.A.L\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\omer\Desktop\programming\H.A.M.A.L\.venv\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such column: projects.auto_restart
+[SQL: SELECT projects.id AS projects_id, projects.name AS projects_name, projects.folder_path AS projects_folder_path, projects.entrypoint AS projects_entrypoint, projects.interpreter_path AS projects_interpreter_path, projects.created_at AS projects_created_at, projects.updated_at AS projects_updated_at, projects.auto_restart AS projects_auto_restart, projects.schedule_start AS projects_schedule_start, projects.schedule_stop AS projects_schedule_stop, projects.custom_scripts AS projects_custom_scripts 
+FROM projects ORDER BY projects.name]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+[Icons] Loading from: C:\Users\omer\Desktop\programming\H.A.M.A.L\src\hamal\ui\assets\icons
+[Icons] Loaded: play
+[Icons] Loaded: stop
+[Icons] Loaded: plus
+[Icons] Loaded: settings
+[Icons] Loaded: trash
+[Icons] Loaded: logs
+[Icons] Loaded: folder
+[Icons] Loaded: clear

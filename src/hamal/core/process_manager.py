@@ -1,6 +1,7 @@
 """Process management for projects - Callback-based (no Qt dependency)."""
 
 import logging
+import os
 import subprocess
 import threading
 from dataclasses import dataclass, field
@@ -30,20 +31,20 @@ class ProcessInfo:
     log_handler: LogHandler
     reader_thread: Optional[threading.Thread] = None
     recent_logs: list = field(default_factory=list)
-    
+
     # Error detection patterns
     ERROR_PATTERNS = ["Traceback", "Error:", "Exception:", "error:", "CRITICAL", "FATAL"]
-    
+
     def add_log(self, line: str):
         """Add a log line, keeping only last 150 lines."""
         self.recent_logs.append(line)
         if len(self.recent_logs) > 150:
             self.recent_logs.pop(0)
-    
+
     def get_recent_logs(self) -> str:
         """Get recent logs as a string."""
         return "\n".join(self.recent_logs)
-    
+
     def get_error_logs(self) -> str:
         """Get logs starting from the first error indicator."""
         error_start_idx = None
@@ -54,17 +55,16 @@ class ProcessInfo:
                     break
             if error_start_idx is not None:
                 break
-        
+
         if error_start_idx is not None:
             return "\n".join(self.recent_logs[error_start_idx:])
-        else:
-            return "\n".join(self.recent_logs[-30:])
+        return "\n".join(self.recent_logs[-30:])
 
 
 class ProcessManager:
     """
     Manages subprocess lifecycle for projects.
-    
+
     Uses callback functions instead of Qt signals for UI updates.
     """
 
@@ -72,7 +72,7 @@ class ProcessManager:
         self._processes: dict[int, ProcessInfo] = {}
         self._project_names: dict[int, str] = {}
         self._lock = threading.Lock()
-        
+
         # Callbacks (set by UI)
         self.on_status_changed: Optional[Callable[[int, str], None]] = None
         self.on_log_received: Optional[Callable[[int, str], None]] = None
@@ -84,11 +84,12 @@ class ProcessManager:
         with self._lock:
             if project_id not in self._processes:
                 return ProcessStatus.STOPPED
-            
+
             info = self._processes[project_id]
             if info.process.poll() is not None:
-                return ProcessStatus.CRASHED if info.process.returncode != 0 else ProcessStatus.STOPPED
-            
+                return (ProcessStatus.CRASHED if info.process.returncode != 0
+                        else ProcessStatus.STOPPED)
+
             return ProcessStatus.RUNNING
 
     def get_uptime(self, project_id: int) -> Optional[float]:
@@ -96,17 +97,18 @@ class ProcessManager:
         with self._lock:
             if project_id not in self._processes:
                 return None
-            
+
             info = self._processes[project_id]
             if info.process.poll() is not None:
                 return None
-            
+
             return (datetime.now() - info.start_time).total_seconds()
 
     def start_project(self, project: Project) -> bool:
         """Start a project subprocess."""
+        # pylint: disable=logging-fstring-interpolation
         logger = logging.getLogger(__name__)
-        
+
         # === DEBUG LOGGING ===
         logger.info("="*50)
         logger.info(f"[START_PROJECT] Attempting to start: {project.name}")
@@ -115,7 +117,7 @@ class ProcessManager:
         logger.info(f"  entrypoint: {project.entrypoint}")
         logger.info(f"  interpreter_path: {project.interpreter_path}")
         # === END DEBUG ===
-        
+
         with self._lock:
             if project.id in self._processes:
                 existing = self._processes[project.id]
@@ -128,16 +130,16 @@ class ProcessManager:
         try:
             interpreter = Path(project.interpreter_path)
             script = Path(project.folder_path) / project.entrypoint
-            
+
             logger.info(f"  Full script path: {script}")
             logger.info(f"  Interpreter exists: {interpreter.exists()}")
             logger.info(f"  Script exists: {script.exists()}")
-            
+
             if not interpreter.exists():
                 logger.error(f"  [FAIL] Interpreter not found: {interpreter}")
                 self._emit_status(project.id, ProcessStatus.STOPPED.value)
                 return False
-            
+
             if not script.exists():
                 logger.error(f"  [FAIL] Script not found: {script}")
                 self._emit_status(project.id, ProcessStatus.STOPPED.value)
@@ -146,11 +148,11 @@ class ProcessManager:
             log_handler = LogHandler(project.id)
             log_handler.start_logging()
 
-            import os
             env = os.environ.copy()
             env["PYTHONIOENCODING"] = "utf-8"
             env["PYTHONUTF8"] = "1"
 
+            # pylint: disable=consider-using-with
             process = subprocess.Popen(
                 [str(interpreter), "-u", str(script)],
                 stdout=subprocess.PIPE,
@@ -197,7 +199,7 @@ class ProcessManager:
             self._emit_status(project.id, ProcessStatus.RUNNING.value)
             return True
 
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             self._emit_log(project.id, f"[ERROR] Failed to start: {e}")
             self._emit_status(project.id, ProcessStatus.STOPPED.value)
             return False
@@ -217,7 +219,7 @@ class ProcessManager:
         with self._lock:
             if project_id not in self._processes:
                 return False
-            
+
             info = self._processes[project_id]
             if info.process.poll() is not None:
                 return False
@@ -226,7 +228,7 @@ class ProcessManager:
 
         try:
             info.process.terminate()
-            
+
             try:
                 info.process.wait(timeout=5)
             except subprocess.TimeoutExpired:
@@ -241,7 +243,7 @@ class ProcessManager:
             self._emit_status(project_id, ProcessStatus.STOPPED.value)
             return True
 
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             self._emit_log(project_id, f"[ERROR] Failed to stop: {e}")
             return False
 
@@ -249,7 +251,7 @@ class ProcessManager:
         """Stop all running projects."""
         with self._lock:
             project_ids = list(self._processes.keys())
-        
+
         for project_id in project_ids:
             self.stop_project(project_id)
 
@@ -260,15 +262,15 @@ class ProcessManager:
                 if not line:
                     break
                 line = line.rstrip("\n\r")
-                
+
                 with self._lock:
                     if project_id in self._processes:
                         info = self._processes[project_id]
                         info.log_handler.write_line(line, stream_name)
                         info.add_log(f"[{stream_name.upper()}] {line}")
-                
+
                 self._emit_log(project_id, line)
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             pass
         finally:
             stream.close()
@@ -294,10 +296,10 @@ class ProcessManager:
 
         status = ProcessStatus.CRASHED if exit_code != 0 else ProcessStatus.STOPPED
         self._emit_status(project_id, status.value)
-        
+
         if self.on_process_exited:
             self.on_process_exited(project_id, exit_code)
-        
+
         if exit_code != 0 and self.on_crash_detected:
             self.on_crash_detected(project_id, project_name, exit_code, recent_logs)
 
