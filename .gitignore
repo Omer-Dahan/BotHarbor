@@ -38,3 +38,6 @@ installer_output/
 data/
 *.db
 src/hamal/ui/assets/icons/generate_ico.py
+
+# Recovery files
+HAMAL_Recovery/
