@@ -1,6 +1,8 @@
 """Log panel widget using CustomTkinter - Live logs view."""
 
 import os
+import re
+import tkinter as tk
 from typing import Optional
 
 import customtkinter as ctk
@@ -116,6 +118,22 @@ class LogPanel(ctk.CTkFrame):
         self.log_text.grid(row=0, column=0, padx=3, pady=3, sticky="nsew")
         self.log_text.configure(state="disabled")
 
+        # Configure syntax highlighting tags
+        self.log_text.tag_config("timestamp", foreground=COLORS["green"])
+        self.log_text.tag_config("file", foreground="#cba6f7") # Mauve
+        self.log_text.tag_config("info_lvl", foreground=COLORS["blue"])
+        self.log_text.tag_config("warn_lvl", foreground=COLORS["yellow"])
+        self.log_text.tag_config("err_lvl", foreground=COLORS["red"])
+        self.log_text.tag_config("success_lvl", foreground=COLORS["green"])
+        
+        self.log_text.tag_config("info", foreground=COLORS["text"])
+        self.log_text.tag_config("error", foreground=COLORS["red"])
+        self.log_text.tag_config("warn", foreground=COLORS["yellow"])
+        self.log_text.tag_config("success", foreground=COLORS["green"])
+        self.log_text.tag_config("link", foreground="#89dceb", underline=True)  # Sapphire color
+
+        self._setup_context_menu()
+
         # Initial message
         self._show_initial_message()
 
@@ -128,6 +146,54 @@ class LogPanel(ctk.CTkFrame):
             anchor="w"
         )
         self.status_bar.grid(row=2, column=0, padx=10, pady=(0, 5), sticky="ew")
+
+    def _setup_context_menu(self):
+        """Setup right-click context menu and copy shortcuts for logs."""
+        # Create standard tkinter Menu for the context menu
+        self.context_menu = tk.Menu(self.winfo_toplevel(), tearoff=False,
+                                   bg=COLORS["surface"], fg=COLORS["text"],
+                                   activebackground=COLORS["overlay"], activeforeground=COLORS["text"],
+                                   relief="flat", borderwidth=1)
+        
+        self.context_menu.add_command(label="Copy (Ctrl+C)", command=self._copy_selection)
+        self.context_menu.add_separator()
+        self.context_menu.add_command(label="Copy All", command=self._copy_all)
+
+        # Bind events to the textbox
+        self.log_text.bind("<Button-3>", self._show_context_menu)
+        self.log_text.bind("<Control-c>", lambda e: self._copy_selection())
+        # Make the textbox focusable even when disabled
+        self.log_text.bind("<Button-1>", lambda e: self.log_text.focus_set())
+
+    def _show_context_menu(self, event):
+        """Show context menu on right click."""
+        try:
+            # Only show if there's text
+            if self.log_text.get("1.0", "end-1c").strip() != "":
+                self.context_menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            self.context_menu.grab_release()
+
+    def _copy_selection(self, _event=None):
+        """Copy selected text to clipboard."""
+        try:
+            # Check if there's a selection
+            selected_text = self.log_text.get("sel.first", "sel.last")
+            if selected_text:
+                self.clipboard_clear()
+                self.clipboard_append(selected_text)
+                self.update() # Keep clipboard contents
+        except tk.TclError:
+            pass # No selection
+        return "break" # Prevent default behavior
+            
+    def _copy_all(self):
+        """Copy all log text to clipboard."""
+        all_text = self.log_text.get("1.0", "end-1c")
+        if all_text.strip():
+            self.clipboard_clear()
+            self.clipboard_append(all_text)
+            self.update()
 
     def _show_initial_message(self):
         """Show initial message when no project is selected."""
@@ -184,7 +250,7 @@ class LogPanel(ctk.CTkFrame):
 
         if self.current_project_id and self.current_project_id in self.logs:
             for line in self.logs[self.current_project_id]:
-                self.log_text.insert("end", line + "\n")
+                self._insert_colored_line(line)
         else:
             self.log_text.insert(
                 "end", f"\n    Waiting for output from {self.current_project_name}...\n"
@@ -194,10 +260,72 @@ class LogPanel(ctk.CTkFrame):
         self.log_text.configure(state="disabled")
         self.log_text.see("end")
 
+    def _insert_message_with_links(self, text: str, base_tag: str = None):
+        """Helper to insert text while processing links."""
+        link_pattern = r"(https?://[^\s]+|[a-zA-Z]:\\[^\s]+|/[^\s]+)"
+        parts = re.split(link_pattern, text)
+        for part in parts:
+            if not part:
+                continue
+            if re.match(link_pattern, part):
+                self.log_text.insert("end", part, "link")
+            else:
+                args = ("end", part) if not base_tag else ("end", part, base_tag)
+                self.log_text.insert(*args)
+
+    def _insert_colored_line(self, line: str):
+        """Parse a line and insert it with appropriate color tags."""
+        # Try to match the specific log format: [Date] filename.py:line Level] Message
+        match = re.match(r"^(\[\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}(?:,\d{3})?\])\s+([^ ]+:\d+)\s+([A-Z]\])(.*)", line)
+        if match:
+            timestamp, file_info, level, message = match.groups()
+            
+            # Insert Timestamp (green)
+            self.log_text.insert("end", timestamp + " ", "timestamp")
+            
+            # Insert File path/line (mauve)
+            self.log_text.insert("end", file_info + " ", "file")
+            
+            # Insert Level indicator
+            lvl_tag = "info_lvl"
+            base_msg_tag = None
+            if "W]" in level:
+                lvl_tag = "warn_lvl"
+                base_msg_tag = "warn" if "⚠️" in message else None
+            elif "E]" in level or "F]" in level:
+                lvl_tag = "err_lvl"
+                base_msg_tag = "error"
+            elif "I]" in level:
+                lvl_tag = "info_lvl"
+                if "✅" in message:
+                    base_msg_tag = "success"
+                
+            self.log_text.insert("end", level, lvl_tag)
+            
+            # Insert the message body natively and handle links
+            self._insert_message_with_links(message, base_msg_tag)
+            self.log_text.insert("end", "\n")
+            return
+
+        # Fallback parsing for lines that aren't matching the standard log structure (e.g. ASCII art)
+        line_lower = line.lower()
+        base_tag = None
+        
+        if "error" in line_lower or "traceback" in line_lower or "exception" in line_lower or "failed" in line_lower or "❌" in line:
+            base_tag = "error"
+        elif "warn" in line_lower or "⚠️" in line:
+            base_tag = "warn"
+        elif "success" in line_lower or "finished" in line_lower or "done" in line_lower or "✅" in line:
+            base_tag = "success"
+
+        self._insert_message_with_links(line, base_tag)
+        if not line.endswith("\n"):
+            self.log_text.insert("end", "\n")
+
     def _append_line(self, line: str):
         """Append a single line to the log display."""
         self.log_text.configure(state="normal")
-        self.log_text.insert("end", line + "\n")
+        self._insert_colored_line(line)
         self.log_text.configure(state="disabled")
         self.log_text.see("end")
 

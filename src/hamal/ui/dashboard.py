@@ -301,21 +301,6 @@ class Dashboard(ctk.CTkFrame):
         )
         stop_btn.pack(side="left", padx=2)
 
-        # Log button
-        log_btn = ctk.CTkButton(
-            actions_frame,
-            text="",
-            image=Icons.get("logs"),
-            width=32,
-            height=32,
-            corner_radius=4,
-            fg_color=COLORS["overlay"],
-            hover_color=COLORS["blue"],
-            text_color=COLORS["text"],
-            command=lambda pid=project.id, pname=project.name: self.on_view_logs(pid, pname)
-        )
-        log_btn.pack(side="left", padx=2)
-
         # Settings/Edit button
         edit_btn = ctk.CTkButton(
             actions_frame,
@@ -349,7 +334,7 @@ class Dashboard(ctk.CTkFrame):
         # Bind hover events to all widgets in the row
         all_widgets = [
             row_frame, name_label, status_frame, status_dot, status_text,
-            uptime_label, actions_frame, play_btn, stop_btn, log_btn,
+            uptime_label, actions_frame, play_btn, stop_btn,
             edit_btn, delete_btn
         ]
 
@@ -383,7 +368,7 @@ class Dashboard(ctk.CTkFrame):
             widget.bind("<Enter>", on_enter)
             widget.bind("<Leave>", on_leave)
             # Bind click only to non-button widgets (first 6 in the list)
-            if widget not in (play_btn, stop_btn, log_btn, edit_btn, delete_btn, actions_frame):
+            if widget not in (play_btn, stop_btn, edit_btn, delete_btn, actions_frame):
                 widget.bind("<Button-1>", on_click_visual)
 
         # Store widgets for updates
